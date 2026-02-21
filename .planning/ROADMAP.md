@@ -15,8 +15,8 @@
 **Plans:** 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Project scaffolding + immutable event types + event type tests
-- [ ] 01-02-PLAN.md — EventQueue (TDD) + queue tests + causality test skeleton
+- [x] 01-01-PLAN.md — Project scaffolding + immutable event types + event type tests (2026-02-22)
+- [x] 01-02-PLAN.md — EventQueue (TDD) + queue tests + causality test skeleton (2026-02-22)
 
 ### Success Criteria
 1. Four event types exist as `@dataclass(frozen=True)`: `MarketEvent`, `SignalEvent`, `OrderEvent`, `FillEvent` — instantiation raises `FrozenInstanceError` on mutation attempt.

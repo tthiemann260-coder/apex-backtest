@@ -7,8 +7,8 @@
 
 ### Event Architecture
 
-- [ ] **EDA-01**: Engine verarbeitet Events streng sequentiell ueber eine zentrale collections.deque (FIFO)
-- [ ] **EDA-02**: Vier Event-Typen existieren als frozen dataclasses: MarketEvent, SignalEvent, OrderEvent, FillEvent
+- [x] **EDA-01**: Engine verarbeitet Events streng sequentiell ueber eine zentrale collections.deque (FIFO)
+- [x] **EDA-02**: Vier Event-Typen existieren als frozen dataclasses: MarketEvent, SignalEvent, OrderEvent, FillEvent
 - [ ] **EDA-03**: Backtest-Orchestrator dispatcht Events an die jeweils zustaendige Komponente ohne eigene Trading-Logik
 - [ ] **EDA-04**: Jede Sweep-Iteration bekommt frisch instanziierte Komponenten (kein State-Sharing)
 
@@ -79,7 +79,7 @@
 
 ### Testing & QA
 
-- [ ] **TEST-01**: pytest TDD-Struktur mit Causality-Tests (kein Zukunftszugriff)
+- [x] **TEST-01**: pytest TDD-Struktur mit Causality-Tests (kein Zukunftszugriff)
 - [ ] **TEST-02**: PnL-Verifikation mit exakter Decimal-Gleichheit (kein pytest.approx)
 - [ ] **TEST-03**: Same-Bar-Fill Prevention Test (Fill-Timestamp = naechster Bar Open)
 - [ ] **TEST-04**: Gap-Through Stop Test (Fill am Open, nicht am Stop-Preis)
@@ -125,8 +125,8 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| EDA-01 | Phase 1 | Pending |
-| EDA-02 | Phase 1 | Pending |
+| EDA-01 | Phase 1 | Complete |
+| EDA-02 | Phase 1 | Complete |
 | EDA-03 | Phase 6 | Pending |
 | EDA-04 | Phase 6 | Pending |
 | DATA-01 | Phase 2 | Pending |
@@ -176,7 +176,7 @@
 | DASH-05 | Phase 8 | Pending |
 | DASH-06 | Phase 8 | Pending |
 | DASH-07 | Phase 8 | Pending |
-| TEST-01 | Phase 1 | Pending |
+| TEST-01 | Phase 1 | Complete |
 | TEST-02 | Phase 5 | Pending |
 | TEST-03 | Phase 4 | Pending |
 | TEST-04 | Phase 4 | Pending |
