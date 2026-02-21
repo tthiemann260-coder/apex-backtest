@@ -20,6 +20,7 @@ from src.events import (
     OrderSide,
     Event,
 )
+from src.event_queue import EventQueue
 
 
 # ---------------------------------------------------------------------------
@@ -231,3 +232,157 @@ class TestDecimalPrecision:
         self, fill_event: FillEvent
     ) -> None:
         assert fill_event.commission == Decimal("1.50")
+
+
+# ---------------------------------------------------------------------------
+# TestEventQueue — 11 tests (Plan 01-02)
+# ---------------------------------------------------------------------------
+
+class TestEventQueue:
+    """FIFO ordering, type validation, and queue API correctness."""
+
+    @pytest.fixture
+    def now(self) -> datetime:
+        return datetime(2024, 1, 15, 9, 30, 0, tzinfo=timezone.utc)
+
+    @pytest.fixture
+    def queue(self) -> EventQueue:
+        return EventQueue()
+
+    @pytest.fixture
+    def sample_market(self, now: datetime) -> MarketEvent:
+        return MarketEvent(
+            symbol="AAPL",
+            timestamp=now,
+            open=Decimal("182.15"),
+            high=Decimal("183.50"),
+            low=Decimal("181.00"),
+            close=Decimal("182.80"),
+            volume=1_500_000,
+            timeframe="1d",
+        )
+
+    @pytest.fixture
+    def sample_signal(self, now: datetime) -> SignalEvent:
+        return SignalEvent(
+            symbol="AAPL",
+            timestamp=now,
+            signal_type=SignalType.LONG,
+            strength=Decimal("0.80"),
+        )
+
+    @pytest.fixture
+    def sample_order(self, now: datetime) -> OrderEvent:
+        return OrderEvent(
+            symbol="AAPL",
+            timestamp=now,
+            order_type=OrderType.MARKET,
+            side=OrderSide.BUY,
+            quantity=Decimal("100"),
+            price=None,
+        )
+
+    @pytest.fixture
+    def sample_fill(self, now: datetime) -> FillEvent:
+        return FillEvent(
+            symbol="AAPL",
+            timestamp=now,
+            side=OrderSide.BUY,
+            quantity=Decimal("100"),
+            fill_price=Decimal("181.80"),
+            commission=Decimal("1.50"),
+            slippage=Decimal("0.05"),
+            spread_cost=Decimal("0.02"),
+        )
+
+    def test_empty_on_init(self, queue: EventQueue) -> None:
+        """New queue is empty, size=0, len=0."""
+        assert queue.is_empty() is True
+        assert queue.size() == 0
+        assert len(queue) == 0
+
+    def test_put_and_get_single_event(
+        self, queue: EventQueue, sample_market: MarketEvent
+    ) -> None:
+        """Put MarketEvent, get returns same instance, queue empty after."""
+        queue.put(sample_market)
+        result = queue.get()
+        assert result is sample_market
+        assert queue.is_empty() is True
+
+    def test_fifo_ordering_100_events(self, queue: EventQueue) -> None:
+        """100 events enqueued then dequeued produce identical ordering."""
+        now = datetime(2024, 1, 15, 9, 30, 0, tzinfo=timezone.utc)
+        events = [
+            MarketEvent(
+                symbol=f"SYM{i:04d}",
+                timestamp=now,
+                open=Decimal("100.00"),
+                high=Decimal("101.00"),
+                low=Decimal("99.00"),
+                close=Decimal("100.50"),
+                volume=1000,
+                timeframe="1d",
+            )
+            for i in range(100)
+        ]
+        for e in events:
+            queue.put(e)
+        dequeued = [queue.get() for _ in range(100)]
+        assert dequeued == events
+
+    def test_mixed_event_types_fifo(
+        self,
+        queue: EventQueue,
+        sample_market: MarketEvent,
+        sample_signal: SignalEvent,
+        sample_order: OrderEvent,
+        sample_fill: FillEvent,
+    ) -> None:
+        """Mixed event types maintain FIFO ordering."""
+        sequence = [sample_market, sample_signal, sample_order, sample_fill]
+        for e in sequence:
+            queue.put(e)
+        result = [queue.get() for _ in range(4)]
+        assert result == sequence
+
+    def test_get_raises_on_empty_queue(self, queue: EventQueue) -> None:
+        """get() on empty queue raises IndexError."""
+        with pytest.raises(IndexError):
+            queue.get()
+
+    def test_put_rejects_string(self, queue: EventQueue) -> None:
+        """put('string') raises TypeError with descriptive message."""
+        with pytest.raises(TypeError, match="EventQueue only accepts"):
+            queue.put("string")
+
+    def test_put_rejects_int(self, queue: EventQueue) -> None:
+        """put(42) raises TypeError."""
+        with pytest.raises(TypeError):
+            queue.put(42)
+
+    def test_put_rejects_none(self, queue: EventQueue) -> None:
+        """put(None) raises TypeError."""
+        with pytest.raises(TypeError):
+            queue.put(None)
+
+    def test_put_rejects_dict(self, queue: EventQueue) -> None:
+        """put(dict) raises TypeError."""
+        with pytest.raises(TypeError):
+            queue.put({"key": "value"})
+
+    def test_clear_empties_queue(
+        self, queue: EventQueue, sample_market: MarketEvent, sample_signal: SignalEvent
+    ) -> None:
+        """Put 2 events, clear, assert empty and size=0."""
+        queue.put(sample_market)
+        queue.put(sample_signal)
+        assert queue.size() == 2
+        queue.clear()
+        assert queue.is_empty() is True
+        assert queue.size() == 0
+
+    def test_repr_contains_class_and_size(self, queue: EventQueue) -> None:
+        """repr includes class name and size."""
+        assert "EventQueue" in repr(queue)
+        assert "size=0" in repr(queue)
