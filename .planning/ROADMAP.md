@@ -12,6 +12,11 @@
 **Goal:** Create the immutable event type system and the central FIFO event queue that all other components depend on.
 **Dependencies:** None
 **Requirements:** EDA-01, EDA-02, TEST-01
+**Plans:** 2 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Project scaffolding + immutable event types + event type tests
+- [ ] 01-02-PLAN.md — EventQueue (TDD) + queue tests + causality test skeleton
 
 ### Success Criteria
 1. Four event types exist as `@dataclass(frozen=True)`: `MarketEvent`, `SignalEvent`, `OrderEvent`, `FillEvent` — instantiation raises `FrozenInstanceError` on mutation attempt.
