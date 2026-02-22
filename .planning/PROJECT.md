@@ -10,12 +10,20 @@ Die Engine muss mathematisch korrekte Backtesting-Ergebnisse liefern — kein Lo
 
 ## Current State
 
-**Version:** v1.0 (shipped 2026-02-22)
-**Next:** v2.0 (in progress)
-**Tests:** 250 passing, 91% coverage
+**Version:** v2.0 (shipped 2026-02-22)
+**Tests:** 427 passing, 90% coverage
 **Launch:** `python -m src.dashboard` from project root
 
-### v1.0 Shipped Features
+### v2.0 Shipped Features (on top of v1.0)
+- Advanced Analytics: Monthly heatmap, rolling Sharpe/DD, trade breakdown, MAE/MFE, commission sweep
+- Smart Money Concepts: Order blocks, BOS/CHOCH, FVG state machine, combined SMC strategy
+- Optimization Engine: Walk-forward validation, parameter sensitivity, Monte Carlo shuffling, robustness report
+- Portfolio Enhancement: Multi-strategy routing, attribution, buy-and-hold benchmark, Alpha/Beta/IR
+- Report Export: Interactive HTML and static PDF reports with Jinja2 templates
+
+<details>
+<summary>v1.0 Features (shipped 2026-02-22)</summary>
+
 - Event-driven architecture (4 event types, FIFO queue)
 - DataHandler (yield-generator, Decimal, Parquet cache, yfinance, gap-fill)
 - 3 strategies (Reversal, Breakout, FVG) with pandas-ta
@@ -23,16 +31,7 @@ Die Engine muss mathematisch korrekte Backtesting-Ergebnisse liefern — kein Lo
 - Portfolio (Decimal, FIFO PnL, margin monitoring, forced liquidation)
 - Metrics (Sharpe, Sortino, MDD, Calmar, CAGR, win rate, exposure)
 - Dash dashboard (candlestick, equity, drawdown, KPIs, sweep heatmap)
-
-## v2.0 Milestone — Advanced Analytics, SMC & Optimization
-
-### Active Requirements (30 total)
-- **Advanced Analytics (9):** Monthly Heatmap, Rolling Sharpe/DD, Trade Breakdown, MAE/MFE, Commission Sweep
-- **Smart Money Concepts (4):** Order Blocks, BOS/CHOCH, FVG Mitigation, SMC Strategy
-- **Optimization (4):** Walk-Forward (Rolling), Parameter Sensitivity, Monte Carlo, Robustness Report
-- **Portfolio Enhancement (4):** Multi-Strategy, Attribution, Benchmark, Alpha/Beta
-- **Report Export (3):** HTML Report, PDF Report, Jinja2 Templates
-- **Testing (5):** SMC Tests, WFO Isolation, Multi-Strategy Invariante, Report Gen, Coverage >= 90%
+</details>
 
 ## Constraints
 
@@ -60,5 +59,9 @@ Die Engine muss mathematisch korrekte Backtesting-Ergebnisse liefern — kein Lo
 - Mobile App
 - ML/AI-Strategien (regelbasiert only)
 
+## Next Milestone Goals
+
+To be defined with `/gsd:new-milestone`.
+
 ---
-*Last updated: 2026-02-22 — v1.0 shipped*
+*Last updated: 2026-02-22 — v2.0 shipped*
