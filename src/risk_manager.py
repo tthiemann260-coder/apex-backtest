@@ -286,6 +286,8 @@ class RiskManager:
         kelly: Optional[KellyCriterion] = None,
         heat_monitor: Optional[PortfolioHeatMonitor] = None,
         dd_scaler: Optional[DrawdownScaler] = None,
+        per_asset_max_positions: Optional[dict[str, int]] = None,
+        per_asset_max_pct: Optional[dict[str, Decimal]] = None,
     ) -> None:
         self._risk_per_trade = risk_per_trade
         self._atr_multiplier = atr_multiplier
@@ -295,6 +297,8 @@ class RiskManager:
         self._kelly = kelly
         self._heat_monitor = heat_monitor
         self._dd_scaler = dd_scaler
+        self._per_asset_max_positions = per_asset_max_positions
+        self._per_asset_max_pct = per_asset_max_pct
 
     # ------------------------------------------------------------------
     # Trade gating
@@ -312,6 +316,18 @@ class RiskManager:
         )
         if open_count >= self._max_concurrent_positions:
             return False, "Max concurrent positions reached"
+
+        # Per-asset position check (MULTI-04)
+        if self._per_asset_max_positions is not None:
+            symbol = bar.symbol
+            symbol_limit = self._per_asset_max_positions.get(symbol)
+            if symbol_limit is not None:
+                symbol_positions = sum(
+                    1 for s, pos in portfolio.positions.items()
+                    if s == symbol and pos.quantity > Decimal("0")
+                )
+                if symbol_positions >= symbol_limit:
+                    return False, f"Per-asset limit reached for {symbol}"
 
         return True, "OK"
 
@@ -371,6 +387,13 @@ class RiskManager:
         # Step 6: Cap at max position pct
         max_quantity = (equity * self._max_position_pct) / bar.close
         quantity = min(quantity, max_quantity)
+
+        # Step 6b: Per-asset max pct cap (MULTI-04)
+        if self._per_asset_max_pct is not None:
+            asset_limit = self._per_asset_max_pct.get(bar.symbol)
+            if asset_limit is not None:
+                asset_max_qty = (equity * asset_limit) / bar.close
+                quantity = min(quantity, asset_max_qty)
 
         # Step 7: Drawdown scaling
         if self._dd_scaler is not None:
