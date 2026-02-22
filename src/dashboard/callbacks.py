@@ -40,6 +40,7 @@ STRATEGY_MAP = {
     "fvg": ("src.strategy.fvg", "FVGStrategy"),
     "smc": ("src.strategy.smc.smc_strategy", "SMCStrategy"),
     "ict": ("src.strategy.smc.ict_strategy", "ICTStrategy"),
+    "regime_ict": ("src.strategy.regime.gated_strategy", "create_regime_gated_ict"),
 }
 
 # Default strategy params for sweep
@@ -72,15 +73,21 @@ SWEEP_PARAMS = {
         "require_kill_zone": [True, False],
         "require_ote": [True, False],
     },
+    "regime_ict": {
+        "atr_period": [10, 14, 20],
+        "adx_period": [10, 14, 20],
+        "regime_lookback": [30, 50, 100],
+        "require_sweep": [True, False],
+    },
 }
 
 
 def _import_strategy(strategy_name: str):
-    """Dynamically import a strategy class."""
+    """Dynamically import a strategy class or factory function."""
     import importlib
-    module_path, class_name = STRATEGY_MAP[strategy_name]
+    module_path, class_or_func_name = STRATEGY_MAP[strategy_name]
     module = importlib.import_module(module_path)
-    return getattr(module, class_name)
+    return getattr(module, class_or_func_name)
 
 
 def _run_backtest(
