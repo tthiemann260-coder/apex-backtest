@@ -75,6 +75,11 @@ class RegimeGatedStrategy(BaseStrategy):
     def inner_strategy(self) -> BaseStrategy:
         return self._inner
 
+    @property
+    def current_atr(self) -> Decimal:
+        """Forward ATR from inner strategy for RiskManager integration."""
+        return getattr(self._inner, "current_atr", Decimal("0"))
+
     # ------------------------------------------------------------------
     # Main pipeline
     # ------------------------------------------------------------------

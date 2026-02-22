@@ -11,15 +11,15 @@ See: .planning/PROJECT.md
 | Phase | Name | Status | Tests |
 |-------|------|--------|-------|
 | 14 | ICT / Liquidity Concepts | Complete | 30 new (457 total) |
-| 15 | Regime Detection | Pending | — |
-| 16 | Advanced Risk Management | Pending | — |
+| 15 | Regime Detection | Complete | 25 new (482 total) |
+| 16 | Advanced Risk Management | Complete | 26 new (508 total) |
 | 17 | Multi-Asset Foundation | Pending | — |
 | 18 | Dashboard Integration (v3.0) | Pending | — |
 
 ### Progress
-- Requirements: 26 defined, 6 complete
-- Phases: 1/5 complete
-- Tests: 457 passing, 89% coverage
+- Requirements: 26 defined, 17 complete
+- Phases: 3/5 complete
+- Tests: 508 passing, 90% coverage
 
 ## Previous Milestones
 
@@ -40,12 +40,12 @@ See: .planning/PROJECT.md
 - Phase 9: Decimal->float conversion only at Plotly visualization boundary
 
 ## Context for Next Session
-- Phase 14 (ICT/Liquidity) COMPLETE — 30 new tests, 457 total
-- Next: `/gsd:plan-phase 15` to plan Regime Detection
+- Phase 16 (Advanced Risk Management) COMPLETE — 26 new tests, 508 total, 90% coverage
+- Next: `/gsd:plan-phase 17` to plan Multi-Asset Foundation
 
 ### Last Session
 - **Timestamp:** 2026-02-22
-- **Action:** Phase 14 implemented — 5 new modules, dashboard integration
+- **Action:** Phase 16 implemented — RiskManager, Kelly, Heat, Drawdown + Engine integration
 
 ---
 *Last updated: 2026-02-22 — v3.0 milestone started*

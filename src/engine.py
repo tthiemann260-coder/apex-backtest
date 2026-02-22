@@ -51,11 +51,13 @@ class BacktestEngine:
         strategy: BaseStrategy,
         portfolio: Portfolio,
         execution_handler: ExecutionHandler,
+        risk_manager=None,
     ) -> None:
         self._data_handler = data_handler
         self._strategy = strategy
         self._portfolio = portfolio
         self._execution = execution_handler
+        self._risk_manager = risk_manager
         self._event_queue = EventQueue()
         self._event_log: list = []
 
@@ -117,6 +119,12 @@ class BacktestEngine:
         SHORT → SELL MARKET
         EXIT → close current position
         """
+        # Risk gate — applies to LONG and SHORT, not EXIT
+        if self._risk_manager is not None and signal.signal_type != SignalType.EXIT:
+            can, reason = self._risk_manager.can_trade(self._portfolio, bar)
+            if not can:
+                return None
+
         if signal.signal_type == SignalType.LONG:
             # Validate order
             quantity = self._calculate_order_quantity(bar)
@@ -168,18 +176,22 @@ class BacktestEngine:
         return None
 
     def _calculate_order_quantity(self, bar: MarketEvent) -> Decimal:
-        """Calculate order quantity based on portfolio risk settings."""
+        """Calculate order quantity based on risk settings."""
+        if self._risk_manager is not None:
+            return self._risk_manager.compute_quantity(
+                self._portfolio, self._strategy, bar,
+            )
+
+        # Legacy fallback: 10% fixed fractional
         equity_log = self._portfolio.equity_log
         if equity_log:
             equity = equity_log[-1]["equity"]
         else:
             equity = self._portfolio.cash
 
-        # Simple fixed fractional: 10% of equity / price
         if bar.close <= Decimal("0"):
             return Decimal("0")
         quantity = (equity * Decimal("0.10")) / bar.close
-        # Round down to integer shares
         return Decimal(str(int(quantity)))
 
 
@@ -192,6 +204,7 @@ def create_engine(
     commission_per_share: Decimal = Decimal("0.005"),
     spread_pct: Decimal = Decimal("0.0002"),
     margin_requirement: Decimal = Decimal("0.25"),
+    risk_manager=None,
 ) -> BacktestEngine:
     """Factory function for creating fresh engine instances (EDA-04).
 
@@ -213,4 +226,5 @@ def create_engine(
         strategy=strategy,
         portfolio=portfolio,
         execution_handler=execution,
+        risk_manager=risk_manager,
     )
