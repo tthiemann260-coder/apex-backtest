@@ -12,15 +12,15 @@ See: .planning/PROJECT.md
 |-------|------|--------|-------|
 | 9 | Advanced Analytics | Complete | 59 new (309 total) |
 | 10 | Smart Money Concepts | Complete | 47 new (356 total) |
-| 11 | Optimization Engine | Pending | - |
+| 11 | Optimization Engine | Complete | 30 new (386 total) |
 | 12 | Portfolio Enhancement | Pending | - |
 | 13 | Report Export | Pending | - |
 
 ### Progress
-- Requirements: 30 defined, 14 complete (ADV-01..09, SMC-01..04, TEST-10)
-- Phases: 2/5 complete
-- Tests: 356 passing, 90% coverage
-- Next: `/gsd:plan-phase 11` for Optimization Engine
+- Requirements: 30 defined, 19 complete (ADV-01..09, SMC-01..04, TEST-10, OPT-01..04, TEST-11)
+- Phases: 3/5 complete
+- Tests: 386 passing, 90% coverage
+- Next: `/gsd:plan-phase 12` for Portfolio Enhancement
 
 ## Previous Milestone: v1.0 (SHIPPED 2026-02-22)
 - 8 phases, 54 requirements, 250 tests, 91% coverage
@@ -38,14 +38,17 @@ See: .planning/PROJECT.md
 - Phase 9: Decimal→float conversion only at Plotly visualization boundary
 
 ## Context for Next Session
-- Phase 10 (Smart Money Concepts) complete — all 5 requirements (SMC-01..04, TEST-10)
-- New package: src/strategy/smc/ with 5 modules (swing_detector, structure, fvg_tracker, order_block, smc_strategy)
-- SMC strategy available in dashboard dropdown
-- Next: `/gsd:plan-phase 11` for Optimization Engine
+- Phase 11 (Optimization Engine) complete — all 5 requirements (OPT-01..04, TEST-11)
+- New package: src/optimization/ with 4 modules (walk_forward, sensitivity, monte_carlo, robustness)
+- Walk-Forward: rolling IS/OOS windows, efficiency ratio
+- Monte Carlo: trade PnL shuffling, p5/p95 percentiles
+- Parameter Sensitivity: perturbation grid, CV stability metrics
+- Robustness Report: composite score with pass/fail assessment
+- Next: `/gsd:plan-phase 12` for Portfolio Enhancement
 
 ### Last Session
 - **Timestamp:** 2026-02-22
-- **Action:** Phase 10 complete — SMC package (5 modules), 47 new tests
+- **Action:** Phase 11 complete — optimization package (4 modules), 30 new tests
 
 ---
-*Last updated: 2026-02-22 — Phase 10 complete*
+*Last updated: 2026-02-22 — Phase 11 complete*

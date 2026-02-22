@@ -26,10 +26,10 @@
 
 ### Optimization
 
-- [ ] **OPT-01**: Rolling Walk-Forward Validation — Festes Training-Window das vorwaerts rollt, OOS-Test pro Fenster
-- [ ] **OPT-02**: Parameter Sensitivity Analysis — Parameter-Perturbation (±10/20/30%), Stabilitaets-Heatmap
-- [ ] **OPT-03**: Monte Carlo Trade Shuffling — 1000 Permutationen der Trade-Sequenz, p5/p95 Equity/Drawdown
-- [ ] **OPT-04**: Robustness Report — Zusammenfassung: WFO Efficiency, MC Percentile, Parameter-Stabilitaet
+- [x] **OPT-01**: Rolling Walk-Forward Validation — Festes Training-Window das vorwaerts rollt, OOS-Test pro Fenster
+- [x] **OPT-02**: Parameter Sensitivity Analysis — Parameter-Perturbation (±10/20/30%), Stabilitaets-Heatmap
+- [x] **OPT-03**: Monte Carlo Trade Shuffling — 1000 Permutationen der Trade-Sequenz, p5/p95 Equity/Drawdown
+- [x] **OPT-04**: Robustness Report — Zusammenfassung: WFO Efficiency, MC Percentile, Parameter-Stabilitaet
 
 ### Portfolio Enhancement
 
@@ -47,7 +47,7 @@
 ### Testing & QA
 
 - [x] **TEST-10**: SMC Unit Tests — Tests fuer OB/BOS/FVG-Detection mit synthetischen Daten
-- [ ] **TEST-11**: Walk-Forward Isolation — Kein Indicator-State-Leakage zwischen WFO-Fenstern
+- [x] **TEST-11**: Walk-Forward Isolation — Kein Indicator-State-Leakage zwischen WFO-Fenstern
 - [ ] **TEST-12**: Multi-Strategy Invariante — Portfolio-Balance korrekt bei mehreren gleichzeitigen Strategien
 - [ ] **TEST-13**: Report Generation — HTML/PDF Report ohne Exception generierbar
 - [ ] **TEST-14**: Coverage >= 90% — Gesamte Codebase inkl. neuer Module
