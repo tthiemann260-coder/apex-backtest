@@ -59,9 +59,20 @@ Die Engine muss mathematisch korrekte Backtesting-Ergebnisse liefern — kein Lo
 - Mobile App
 - ML/AI-Strategien (regelbasiert only)
 
-## Next Milestone Goals
+## v3.0 Milestone — ICT/Liquidity, Regime Detection, Risk Management & Multi-Asset
 
-To be defined with `/gsd:new-milestone`.
+### Active Requirements (26 total)
+- **ICT/Liquidity (5):** Liquidity Sweeps, Inducement, Kill Zones, Premium/Discount, ICT Strategy
+- **Regime Detection (4):** ATR Volatility, ADX Trend, Combined Classifier, Regime-Gated Strategy
+- **Risk Management (5):** RiskManager, Fixed Fractional, Kelly Criterion, Portfolio Heat, DD Scaling
+- **Multi-Asset (4):** Bar Merge, Multi-Asset Engine, Cross-Asset Correlation, Per-Asset Limits
+- **Dashboard (3):** Regime Overlay, Risk Dashboard, Multi-Asset View
+- **Testing (5):** ICT Tests, Regime Tests, Risk Tests, Multi-Asset Tests, Coverage >= 90%
+
+### Planned for v3.1
+- Strategy Builder (visueller UI-Konfigurator)
+- Trading Journal (Notizen, Emotionen, Lernpunkte)
+- Dashboard UX Improvements
 
 ---
-*Last updated: 2026-02-22 — v2.0 shipped*
+*Last updated: 2026-02-22 — v3.0 milestone started*

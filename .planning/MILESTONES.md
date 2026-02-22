@@ -10,5 +10,10 @@
 5 phases, 30 requirements, 427 tests, 90% coverage.
 [Roadmap](milestones/v2.0-ROADMAP.md) | [Requirements](milestones/v2.0-REQUIREMENTS.md)
 
+## In Progress
+
+### v3.0 — ICT/Liquidity, Regime Detection, Risk Management & Multi-Asset
+5 phases (14-18), 26 requirements. Started 2026-02-22.
+
 ---
 *Last updated: 2026-02-22*
