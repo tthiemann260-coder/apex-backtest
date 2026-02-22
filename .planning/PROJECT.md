@@ -8,46 +8,29 @@ Eine professionelle, ereignisgesteuerte Backtesting-Engine in Python fuer die sy
 
 Die Engine muss mathematisch korrekte Backtesting-Ergebnisse liefern — kein Look-Ahead Bias, kein Survivorship Bias, cent-genaue PnL-Berechnungen durch decimal.Decimal und realistische Marktfriktionen.
 
-## Requirements
+## Current State
 
-### Validated
+**Version:** v1.0 (shipped 2026-02-22)
+**Status:** Fully operational
+**Tests:** 250 passing, 91% coverage
+**Launch:** `python -m src.dashboard` from project root
 
-(None yet — ship to validate)
+### Shipped Features
+- Event-driven architecture (4 event types, FIFO queue)
+- DataHandler (yield-generator, Decimal, Parquet cache, yfinance, gap-fill)
+- 3 strategies (Reversal, Breakout, FVG) with pandas-ta
+- Realistic execution (market/limit/stop, slippage, commission, spread)
+- Portfolio (Decimal, FIFO PnL, margin monitoring, forced liquidation)
+- Metrics (Sharpe, Sortino, MDD, Calmar, CAGR, win rate, exposure)
+- Dash dashboard (candlestick, equity, drawdown, KPIs, sweep heatmap)
 
-### Active
+## Next Milestone Goals (v2.0 — TBD)
 
-- [ ] Event-Driven Architecture mit zentraler Event-Queue
-- [ ] DataHandler mit Yield-Generator (sequentielle Kerzenfreigabe)
-- [ ] decimal.Decimal fuer alle Finanzberechnungen
-- [ ] Realistische Execution (Slippage + Kommissionen)
-- [ ] Portfolio mit Edge-Case-Handling (Null-Volumen, Margin, Gaps)
-- [ ] Point-in-Time Daten (Raw vs. Adjusted Preise)
-- [ ] Kostenlose Marktdaten-API-Anbindung (Yahoo Finance, Alpha Vantage)
-- [ ] Multi-Timeframe Support (1min bis Daily)
-- [ ] Forex + US-Aktien Support
-- [ ] Strategie-Framework (Reversal, Breakout, FVG als Beispiele)
-- [ ] pytest TDD mit Causality-Checks und PnL-Verifikation
-- [ ] Dash-Dashboard mit Sharpe, Sortino, Max DD, Calmar, Exposure Time
-- [ ] Candlestick-Chart mit Buy/Sell-Markern
-- [ ] Drawdown-Wasserfall-Diagramm
-- [ ] Parameter-Sweep Heatmap
-
-### Out of Scope
-
-- Live-Trading / Broker-Anbindung — reines Backtesting-Tool, kein Live-System
-- Kostenpflichtige Datenquellen — nur kostenlose APIs
-- Multi-User / Auth — rein persoenliche Nutzung
-- Mobile App — lokales Desktop-Dashboard reicht
-- Machine-Learning Strategien — Fokus auf regelbasierte Strategien
-
-## Context
-
-- Zielmärkte: Forex (EUR/USD, GBP/USD, etc.) und US-Aktien (NYSE, NASDAQ)
-- Zeitrahmen: 1min, 5min, 15min, 1h, 4h, Daily — Multi-Timeframe-Analyse
-- Strategietypen: Reversal (Mean Reversion), Breakout (Momentum), Fair Value Gaps (ICT/SMC)
-- Datenquellen: Yahoo Finance (yfinance), Alpha Vantage Free Tier
-- Betrieb: Lokaler Rechner, Windows 11, Python 3.12+
-- Dashboard: Browser-basiert via Dash/Plotly, localhost
+Potential directions:
+- Advanced Analytics (Monthly Returns Heatmap, Rolling Sharpe, MAE/MFE)
+- Smart Money Concepts (Order Blocks, BOS, FVG Mitigation Tracking)
+- Optimization (Grid Search Sweep, Walk-Forward Validation, Robustness Report)
+- Commission Sensitivity Analysis
 
 ## Constraints
 
@@ -55,17 +38,25 @@ Die Engine muss mathematisch korrekte Backtesting-Ergebnisse liefern — kein Lo
 - **Precision**: decimal.Decimal fuer alle Finanzmath — kein float
 - **Architecture**: Streng ereignisgesteuert — kein vektorisierter Trading-Code
 - **Cost**: Null Kosten — nur kostenlose APIs und Open-Source-Libraries
-- **Isolation**: Komplett getrennt vom LYNX-Projekt — keine gemeinsamen Abhaengigkeiten
+- **Isolation**: Komplett getrennt vom LYNX-Projekt
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Event-Driven statt vektorisiert | Verhindert Look-Ahead Bias durch sequentielle Verarbeitung | — Pending |
-| decimal.Decimal statt float | Verhindert kumulative IEEE-754 Rundungsfehler | — Pending |
-| Dash statt Streamlit | Enterprise-Skalierung fuer komplexe Callbacks, Plotly-native | — Pending |
-| Yahoo Finance + Alpha Vantage | Kostenlos, zuverlaessig, breite Marktabdeckung | — Pending |
-| pytest + TDD | Mathematischer Beweis der Korrektheit durch Tests | — Pending |
+| Event-Driven statt vektorisiert | Verhindert Look-Ahead Bias | Validated v1.0 |
+| decimal.Decimal statt float | Verhindert Rundungsfehler | Validated v1.0 |
+| Dash statt Streamlit | Enterprise Callbacks, Plotly-native | Validated v1.0 |
+| Yahoo Finance + Alpha Vantage | Kostenlos, zuverlaessig | Validated v1.0 |
+| pytest + TDD | Beweis der Korrektheit | Validated v1.0 |
+
+## Out of Scope
+
+- Live-Trading / Broker-Anbindung
+- Kostenpflichtige Datenquellen
+- Multi-User / Auth
+- Mobile App
+- ML/AI-Strategien (regelbasiert only)
 
 ---
-*Last updated: 2026-02-21 after initialization*
+*Last updated: 2026-02-22 — v1.0 shipped*
