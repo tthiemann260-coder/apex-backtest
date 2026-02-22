@@ -386,3 +386,204 @@ class TestMultiSymbol:
         e2 = next(gen2)
         assert e1.symbol == "AAPL"
         assert e2.symbol == "GOOG"
+
+
+# ---------------------------------------------------------------------------
+# TestGapHandling — DATA-06
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def csv_with_weekend_gap(tmp_path: Path) -> Path:
+    """CSV with Mon-Fri + skip weekend + Mon (3 trading days, gap over weekend)."""
+    rows = [
+        {"Date": "2024-01-15", "Open": "181.50", "High": "183.20", "Low": "180.90", "Close": "182.75", "Volume": "1500000"},
+        {"Date": "2024-01-16", "Open": "182.80", "High": "184.10", "Low": "182.00", "Close": "183.50", "Volume": "1200000"},
+        {"Date": "2024-01-17", "Open": "183.60", "High": "185.00", "Low": "183.10", "Close": "184.25", "Volume": "1350000"},
+        # Gap: 2024-01-18, 2024-01-19 missing (Thu+Fri)
+        {"Date": "2024-01-22", "Open": "186.10", "High": "187.30", "Low": "185.50", "Close": "186.80", "Volume": "1100000"},
+    ]
+    return create_test_csv(rows, tmp_path / "test_gap.csv")
+
+
+@pytest.fixture
+def csv_with_holiday_gap(tmp_path: Path) -> Path:
+    """CSV with a mid-week gap (holiday)."""
+    rows = [
+        {"Date": "2024-01-15", "Open": "181.50", "High": "183.20", "Low": "180.90", "Close": "182.75", "Volume": "1500000"},
+        {"Date": "2024-01-16", "Open": "182.80", "High": "184.10", "Low": "182.00", "Close": "183.50", "Volume": "1200000"},
+        # Gap: 2024-01-17 (holiday)
+        {"Date": "2024-01-18", "Open": "184.30", "High": "186.50", "Low": "184.00", "Close": "186.00", "Volume": "1800000"},
+        {"Date": "2024-01-19", "Open": "186.10", "High": "187.30", "Low": "185.50", "Close": "186.80", "Volume": "1100000"},
+    ]
+    return create_test_csv(rows, tmp_path / "test_holiday.csv")
+
+
+class TestGapHandling:
+
+    def test_no_fill_without_flag(self, csv_with_weekend_gap: Path) -> None:
+        """Without fill_gaps=True, gaps are not filled."""
+        handler = DataHandler("AAPL", csv_path=csv_with_weekend_gap)
+        events = list(handler.stream_bars())
+        assert len(events) == 4  # just the 4 real bars
+
+    def test_forward_fill_fills_gaps(self, csv_with_holiday_gap: Path) -> None:
+        """With fill_gaps=True, the holiday gap is filled."""
+        handler = DataHandler("AAPL", csv_path=csv_with_holiday_gap, fill_gaps=True)
+        events = list(handler.stream_bars())
+        # 4 real bars + 1 filled bar (Jan 17) = 5
+        assert len(events) == 5
+
+    def test_forward_fill_uses_last_close(self, csv_with_holiday_gap: Path) -> None:
+        """Forward-filled bars use the last known close for OHLC."""
+        handler = DataHandler("AAPL", csv_path=csv_with_holiday_gap, fill_gaps=True)
+        events = list(handler.stream_bars())
+        # The filled bar (index 2, Jan 17) should use Jan 16's close (183.50)
+        filled = events[2]
+        assert filled.open == Decimal("183.50")
+        assert filled.high == Decimal("183.50")
+        assert filled.low == Decimal("183.50")
+        assert filled.close == Decimal("183.50")
+
+    def test_forward_filled_bars_have_synthetic_volume(self, csv_with_holiday_gap: Path) -> None:
+        """Forward-filled bars get volume=1 (synthetic, not rejected by null-volume filter)."""
+        handler = DataHandler("AAPL", csv_path=csv_with_holiday_gap, fill_gaps=True)
+        events = list(handler.stream_bars())
+        filled = events[2]  # the gap-filled bar
+        assert filled.volume == 1
+
+    def test_gap_fill_preserves_real_data(self, csv_with_holiday_gap: Path) -> None:
+        """Real bars remain unchanged after gap filling."""
+        handler_no_fill = DataHandler("AAPL", csv_path=csv_with_holiday_gap)
+        handler_fill = DataHandler("AAPL", csv_path=csv_with_holiday_gap, fill_gaps=True)
+        real_events = list(handler_no_fill.stream_bars())
+        filled_events = list(handler_fill.stream_bars())
+        # Real bars should match (indices 0,1 and 3,4 in filled correspond to 0,1,2,3 in real)
+        assert filled_events[0].open == real_events[0].open
+        assert filled_events[1].close == real_events[1].close
+        assert filled_events[3].open == real_events[2].open
+        assert filled_events[4].close == real_events[3].close
+
+
+# ---------------------------------------------------------------------------
+# TestAdjustedPrices — DATA-07
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def csv_with_adj_close(tmp_path: Path) -> Path:
+    """CSV with Adj Close column (simulating a 2:1 split)."""
+    rows = [
+        {"Date": "2024-01-15", "Open": "360.00", "High": "366.40", "Low": "361.80", "Close": "365.50", "Adj Close": "182.75", "Volume": "1500000"},
+        {"Date": "2024-01-16", "Open": "365.60", "High": "368.20", "Low": "364.00", "Close": "367.00", "Adj Close": "183.50", "Volume": "1200000"},
+        {"Date": "2024-01-17", "Open": "367.20", "High": "370.00", "Low": "366.20", "Close": "368.50", "Adj Close": "184.25", "Volume": "1350000"},
+    ]
+    filepath = tmp_path / "test_adj.csv"
+    with open(filepath, "w", newline="") as f:
+        writer = csv.DictWriter(
+            f, fieldnames=["Date", "Open", "High", "Low", "Close", "Adj Close", "Volume"]
+        )
+        writer.writeheader()
+        writer.writerows(rows)
+    return filepath
+
+
+class TestAdjustedPrices:
+
+    def test_raw_prices_by_default(self, csv_with_adj_close: Path) -> None:
+        """Default behavior: use raw Close, not Adj Close."""
+        handler = DataHandler("AAPL", csv_path=csv_with_adj_close)
+        event = next(handler.stream_bars())
+        assert event.close == Decimal("365.50")  # raw, not adjusted
+
+    def test_adjusted_prices_when_requested(self, csv_with_adj_close: Path) -> None:
+        """With use_adjusted=True, Close reflects Adj Close."""
+        handler = DataHandler("AAPL", csv_path=csv_with_adj_close, use_adjusted=True)
+        event = next(handler.stream_bars())
+        # Adj Close for first row is 182.75, raw Close is 365.50
+        # Adj ratio = 182.75 / 365.50 = 0.5
+        # Adjusted Open = 360.00 * 0.5 = 180.00
+        assert event.close == Decimal("182.75")
+
+    def test_adjusted_scales_ohlc(self, csv_with_adj_close: Path) -> None:
+        """Adjusted prices scale Open, High, Low proportionally."""
+        handler = DataHandler("AAPL", csv_path=csv_with_adj_close, use_adjusted=True)
+        event = next(handler.stream_bars())
+        # Ratio = 182.75 / 365.50 = 0.5
+        assert event.open == Decimal("180.0")  # 360 * 0.5
+        assert event.high == Decimal("183.2")  # 366.40 * 0.5
+
+
+# ---------------------------------------------------------------------------
+# TestMultiTimeframeAlignment — DATA-09
+# ---------------------------------------------------------------------------
+
+class TestMultiTimeframeAlignment:
+
+    def test_align_two_symbols(self, tmp_path: Path) -> None:
+        """Aligned handlers produce events with matching dates."""
+        csv1 = create_test_csv([
+            {"Date": "2024-01-15", "Open": "100", "High": "101", "Low": "99", "Close": "100", "Volume": "1000"},
+            {"Date": "2024-01-16", "Open": "100", "High": "102", "Low": "99", "Close": "101", "Volume": "1000"},
+            {"Date": "2024-01-17", "Open": "101", "High": "103", "Low": "100", "Close": "102", "Volume": "1000"},
+        ], tmp_path / "sym1.csv")
+        csv2 = create_test_csv([
+            {"Date": "2024-01-15", "Open": "50", "High": "51", "Low": "49", "Close": "50", "Volume": "2000"},
+            {"Date": "2024-01-16", "Open": "50", "High": "52", "Low": "49", "Close": "51", "Volume": "2000"},
+            {"Date": "2024-01-17", "Open": "51", "High": "53", "Low": "50", "Close": "52", "Volume": "2000"},
+        ], tmp_path / "sym2.csv")
+
+        h1 = DataHandler("SYM1", csv_path=csv1)
+        h2 = DataHandler("SYM2", csv_path=csv2)
+        aligned = DataHandler.align_multi_symbol([h1, h2])
+        assert "SYM1" in aligned
+        assert "SYM2" in aligned
+
+    def test_align_returns_generators(self, tmp_path: Path) -> None:
+        """Aligned output contains generators."""
+        import types
+        csv1 = create_test_csv([
+            {"Date": "2024-01-15", "Open": "100", "High": "101", "Low": "99", "Close": "100", "Volume": "1000"},
+        ], tmp_path / "sym1.csv")
+        h1 = DataHandler("SYM1", csv_path=csv1)
+        aligned = DataHandler.align_multi_symbol([h1])
+        assert isinstance(aligned["SYM1"], types.GeneratorType)
+
+    def test_align_matching_timestamps(self, tmp_path: Path) -> None:
+        """Aligned events from different symbols share timestamps."""
+        csv1 = create_test_csv([
+            {"Date": "2024-01-15", "Open": "100", "High": "101", "Low": "99", "Close": "100", "Volume": "1000"},
+            {"Date": "2024-01-16", "Open": "100", "High": "102", "Low": "99", "Close": "101", "Volume": "1000"},
+        ], tmp_path / "sym1.csv")
+        csv2 = create_test_csv([
+            {"Date": "2024-01-15", "Open": "50", "High": "51", "Low": "49", "Close": "50", "Volume": "2000"},
+            {"Date": "2024-01-16", "Open": "50", "High": "52", "Low": "49", "Close": "51", "Volume": "2000"},
+        ], tmp_path / "sym2.csv")
+
+        h1 = DataHandler("SYM1", csv_path=csv1)
+        h2 = DataHandler("SYM2", csv_path=csv2)
+        aligned = DataHandler.align_multi_symbol([h1, h2])
+        e1 = list(aligned["SYM1"])
+        e2 = list(aligned["SYM2"])
+        assert len(e1) == len(e2)
+        for a, b in zip(e1, e2):
+            assert a.timestamp == b.timestamp
+
+    def test_align_fills_missing_symbol_dates(self, tmp_path: Path) -> None:
+        """If SYM1 has Jan 15-17 but SYM2 only has Jan 15,17, SYM2 gets gap-filled."""
+        csv1 = create_test_csv([
+            {"Date": "2024-01-15", "Open": "100", "High": "101", "Low": "99", "Close": "100", "Volume": "1000"},
+            {"Date": "2024-01-16", "Open": "100", "High": "102", "Low": "99", "Close": "101", "Volume": "1000"},
+            {"Date": "2024-01-17", "Open": "101", "High": "103", "Low": "100", "Close": "102", "Volume": "1000"},
+        ], tmp_path / "sym1.csv")
+        csv2 = create_test_csv([
+            {"Date": "2024-01-15", "Open": "50", "High": "51", "Low": "49", "Close": "50", "Volume": "2000"},
+            # Gap: Jan 16 missing
+            {"Date": "2024-01-17", "Open": "51", "High": "53", "Low": "50", "Close": "52", "Volume": "2000"},
+        ], tmp_path / "sym2.csv")
+
+        h1 = DataHandler("SYM1", csv_path=csv1)
+        h2 = DataHandler("SYM2", csv_path=csv2)
+        aligned = DataHandler.align_multi_symbol([h1, h2])
+        e1 = list(aligned["SYM1"])
+        e2 = list(aligned["SYM2"])
+        assert len(e1) == 3
+        assert len(e2) == 3  # gap-filled to match SYM1

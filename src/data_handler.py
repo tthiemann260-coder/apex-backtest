@@ -5,10 +5,11 @@ Uses yield-generator pattern: one MarketEvent per next() call.
 Structurally prevents look-ahead bias — no future data accessible.
 
 All float prices are converted to Decimal via string constructor at ingestion.
-Zero-volume bars are silently skipped.
+Zero-volume bars are silently skipped (unless they are synthetic gap-fill bars).
 
 Supports: CSV files, yfinance (US stocks), Alpha Vantage (Forex).
 Caches fetched data as Parquet for offline re-runs.
+Gap handling, adjusted prices, multi-symbol alignment.
 """
 
 from __future__ import annotations
@@ -40,6 +41,9 @@ _YF_INTERVAL_MAP: dict[str, str] = {
     "1mo": "1mo",
 }
 
+# Synthetic volume for forward-filled bars (not rejected by null-volume filter)
+_FILL_VOLUME: int = 1
+
 
 class DataHandler:
     """Sequential data ingestion via yield-generator.
@@ -62,6 +66,8 @@ class DataHandler:
         end_date: Optional[str] = None,
         cache_dir: str | Path = "data",
         force_refresh: bool = False,
+        fill_gaps: bool = False,
+        use_adjusted: bool = False,
     ) -> None:
         self._symbol = symbol
         self._timeframe = timeframe
@@ -71,6 +77,8 @@ class DataHandler:
         self._end_date = end_date
         self._cache_dir = Path(cache_dir)
         self._force_refresh = force_refresh
+        self._fill_gaps = fill_gaps
+        self._use_adjusted = use_adjusted
         self._df: Optional[pd.DataFrame] = None
 
     @property
@@ -149,6 +157,68 @@ class DataHandler:
         self._cache_dir.mkdir(parents=True, exist_ok=True)
         df.to_parquet(self._cache_path, index=False)
 
+    # ------------------------------------------------------------------
+    # Data transformations
+    # ------------------------------------------------------------------
+
+    def _apply_adjusted_prices(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Replace OHLC with split/dividend-adjusted values (DATA-07).
+
+        Adjustment ratio = Adj Close / Close, applied to O, H, L, C.
+        """
+        if "Adj Close" not in df.columns:
+            return df
+        if df.empty:
+            return df
+
+        df = df.copy()
+        ratio = df["Adj Close"] / df["Close"]
+        df["Open"] = df["Open"] * ratio
+        df["High"] = df["High"] * ratio
+        df["Low"] = df["Low"] * ratio
+        df["Close"] = df["Adj Close"]
+        df = df.drop(columns=["Adj Close"])
+        return df
+
+    def _forward_fill_gaps(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Fill date gaps with synthetic bars using last known close (DATA-06).
+
+        Forward-filled bars have:
+        - OHLC all set to last known Close
+        - Volume set to _FILL_VOLUME (1) — not rejected by null-volume filter
+        """
+        if df.empty:
+            return df
+
+        df = df.copy()
+        df["Date"] = pd.to_datetime(df["Date"])
+        df = df.set_index("Date")
+
+        # Create complete daily date range (all calendar days between min and max)
+        full_range = pd.date_range(start=df.index.min(), end=df.index.max(), freq="D")
+        df = df.reindex(full_range)
+
+        # Forward-fill prices (OHLC get last known Close for filled bars)
+        # First, mark which rows are gap-fills
+        is_fill = df["Volume"].isna()
+
+        # Forward-fill Close first, then use it for OHLC of gap bars
+        df["Close"] = df["Close"].ffill()
+        df.loc[is_fill, "Open"] = df.loc[is_fill, "Close"]
+        df.loc[is_fill, "High"] = df.loc[is_fill, "Close"]
+        df.loc[is_fill, "Low"] = df.loc[is_fill, "Close"]
+        df.loc[is_fill, "Volume"] = _FILL_VOLUME
+
+        # Forward-fill remaining OHLC for real bars that might have NaN
+        df[["Open", "High", "Low"]] = df[["Open", "High", "Low"]].ffill()
+
+        df = df.reset_index().rename(columns={"index": "Date"})
+        return df
+
+    # ------------------------------------------------------------------
+    # Data pipeline
+    # ------------------------------------------------------------------
+
     def _load_data(self) -> pd.DataFrame:
         """Load data from configured source with Parquet caching."""
         if self._df is not None:
@@ -168,7 +238,15 @@ class DataHandler:
         else:
             raise ValueError(f"Unknown source: {self._source!r}")
 
-        # Apply date range filter (for CSV source or cached data)
+        # Apply adjusted prices if requested (DATA-07)
+        if self._use_adjusted:
+            df = self._apply_adjusted_prices(df)
+
+        # Apply gap filling if requested (DATA-06)
+        if self._fill_gaps:
+            df = self._forward_fill_gaps(df)
+
+        # Apply date range filter
         if self._start_date and "Date" in df.columns and not df.empty:
             df = df[df["Date"] >= pd.Timestamp(self._start_date)]
         if self._end_date and "Date" in df.columns and not df.empty:
@@ -194,7 +272,7 @@ class DataHandler:
         for _, row in df.iterrows():
             volume = int(row["Volume"])
 
-            # DATA-08: reject null-volume bars
+            # DATA-08: reject null-volume bars (real zero-volume, not gap-fill)
             if volume == 0:
                 continue
 
@@ -208,3 +286,83 @@ class DataHandler:
                 volume=volume,
                 timeframe=self._timeframe,
             )
+
+    # ------------------------------------------------------------------
+    # Multi-symbol alignment (DATA-09)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def align_multi_symbol(
+        handlers: list[DataHandler],
+    ) -> dict[str, Generator[MarketEvent, None, None]]:
+        """Align multiple DataHandlers to a common date index.
+
+        Loads all DataFrames, finds the union of all dates, forward-fills
+        missing dates per symbol, and returns a dict of generators.
+
+        Each generator yields bars with matching timestamps across symbols.
+        """
+        # Load all DataFrames
+        dfs: dict[str, pd.DataFrame] = {}
+        for h in handlers:
+            df = h._load_data()
+            df = df.copy()
+            df["Date"] = pd.to_datetime(df["Date"])
+            dfs[h.symbol] = df
+
+        # Build union of all dates
+        all_dates: set[pd.Timestamp] = set()
+        for df in dfs.values():
+            all_dates.update(df["Date"].tolist())
+        sorted_dates = sorted(all_dates)
+
+        if not sorted_dates:
+            return {h.symbol: iter([]) for h in handlers}
+
+        # Align each symbol to the full date index
+        aligned_dfs: dict[str, pd.DataFrame] = {}
+        for symbol, df in dfs.items():
+            df = df.set_index("Date")
+            full_idx = pd.DatetimeIndex(sorted_dates)
+            df = df.reindex(full_idx)
+
+            # Forward-fill gaps
+            is_fill = df["Volume"].isna()
+            df["Close"] = df["Close"].ffill()
+            df.loc[is_fill, "Open"] = df.loc[is_fill, "Close"]
+            df.loc[is_fill, "High"] = df.loc[is_fill, "Close"]
+            df.loc[is_fill, "Low"] = df.loc[is_fill, "Close"]
+            df.loc[is_fill, "Volume"] = _FILL_VOLUME
+            df[["Open", "High", "Low"]] = df[["Open", "High", "Low"]].ffill()
+
+            # Drop rows that are still NaN (dates before this symbol's first bar)
+            df = df.dropna(subset=["Close"])
+
+            df = df.reset_index().rename(columns={"index": "Date"})
+            aligned_dfs[symbol] = df
+
+        def _make_generator(
+            sym: str, df: pd.DataFrame, tf: str,
+        ) -> Generator[MarketEvent, None, None]:
+            for _, row in df.iterrows():
+                volume = int(row["Volume"])
+                if volume == 0:
+                    continue
+                yield MarketEvent(
+                    symbol=sym,
+                    timestamp=pd.Timestamp(row["Date"]).to_pydatetime(),
+                    open=Decimal(str(row["Open"])),
+                    high=Decimal(str(row["High"])),
+                    low=Decimal(str(row["Low"])),
+                    close=Decimal(str(row["Close"])),
+                    volume=volume,
+                    timeframe=tf,
+                )
+
+        result: dict[str, Generator[MarketEvent, None, None]] = {}
+        for h in handlers:
+            if h.symbol in aligned_dfs:
+                result[h.symbol] = _make_generator(
+                    h.symbol, aligned_dfs[h.symbol], h.timeframe,
+                )
+        return result
