@@ -653,7 +653,7 @@ class TestSerialization:
         )
 
         serialized = _serialize_result(result, "reversal", "1d", "AAPL")
-        eq_out, fill_out, tf_out = _deserialize_result(serialized)
+        eq_out, fill_out, tf_out, _ = _deserialize_result(serialized)
 
         assert len(eq_out) == 2
         assert eq_out[0]["equity"] == Decimal("10000")
@@ -726,7 +726,7 @@ class TestCallbackEdgeCases:
     def test_run_backtest_bad_strategy(self):
         """_run_backtest with invalid strategy returns error."""
         from src.dashboard.callbacks import _run_backtest
-        result, metrics, error = _run_backtest("AAPL", "nonexistent", "1d")
+        result, metrics, error, _ = _run_backtest("AAPL", "nonexistent", "1d")
         assert error is not None
         assert result is None
 
@@ -740,7 +740,7 @@ class TestCallbackEdgeCases:
             "fill_log": [],
             "timeframe": "1d",
         }
-        eq, fills, tf = _deserialize_result(store)
+        eq, fills, tf, _ = _deserialize_result(store)
         assert len(eq) == 1
         assert "price" not in eq[0]
         assert tf == "1d"

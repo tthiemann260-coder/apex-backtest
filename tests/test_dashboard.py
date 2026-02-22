@@ -115,10 +115,10 @@ class TestLayouts:
         # Panel is a Row with Col children
         assert len(panel.children) == 10
 
-    def test_controls_has_4_columns(self):
-        """Controls row has 4 columns."""
+    def test_controls_has_5_columns(self):
+        """Controls row has 5 columns (incl. regime overlay toggle)."""
         controls = build_controls()
-        assert len(controls.children) == 4
+        assert len(controls.children) == 5
 
     def test_candlestick_chart_has_id(self):
         """Candlestick chart has correct id."""

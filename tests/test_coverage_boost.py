@@ -165,7 +165,7 @@ class TestCallbacksRunBacktest:
 
     def test_run_backtest_returns_error_on_bad_symbol(self):
         """_run_backtest with a nonexistent symbol returns an error string."""
-        result, metrics, error = _run_backtest(
+        result, metrics, error, _ = _run_backtest(
             symbol="NONEXISTENT_XYZ_999",
             strategy_name="reversal",
             timeframe="1d",
@@ -176,7 +176,7 @@ class TestCallbacksRunBacktest:
 
     def test_run_backtest_with_params(self):
         """_run_backtest accepts custom params without crashing."""
-        result, metrics, error = _run_backtest(
+        result, metrics, error, _ = _run_backtest(
             symbol="NONEXISTENT_XYZ_999",
             strategy_name="reversal",
             timeframe="1d",

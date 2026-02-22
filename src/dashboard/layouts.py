@@ -101,7 +101,15 @@ def build_controls() -> dbc.Row:
                 color="primary",
                 className="w-100",
             ),
-        ], md=3),
+        ], md=2),
+        dbc.Col([
+            dbc.Checkbox(
+                id="regime-overlay-toggle",
+                label="Regime Overlay",
+                value=False,
+                className="mt-4",
+            ),
+        ], md=1, className="d-flex align-items-end"),
     ], className="mb-3")
 
 
@@ -250,6 +258,95 @@ def build_commission_sweep_chart() -> dcc.Graph:
         id="commission-sweep-chart",
         config={"displayModeBar": True},
         style={"height": "400px"},
+    )
+
+
+# ---------------------------------------------------------------------------
+# Phase 18: Risk Dashboard chart placeholders
+# ---------------------------------------------------------------------------
+
+def build_heat_gauge() -> dcc.Graph:
+    """Portfolio heat gauge (Plotly Indicator)."""
+    return dcc.Graph(
+        id="heat-gauge-chart",
+        config={"displayModeBar": False},
+        style={"height": "250px"},
+    )
+
+
+def build_sizing_distribution_chart() -> dcc.Graph:
+    """Position sizing distribution histogram."""
+    return dcc.Graph(
+        id="sizing-distribution-chart",
+        config={"displayModeBar": True},
+        style={"height": "300px"},
+    )
+
+
+def build_daily_risk_usage_chart() -> dcc.Graph:
+    """Daily risk usage bar chart."""
+    return dcc.Graph(
+        id="daily-risk-usage-chart",
+        config={"displayModeBar": True},
+        style={"height": "300px"},
+    )
+
+
+def build_drawdown_scaling_chart() -> dcc.Graph:
+    """Drawdown scale factor over time."""
+    return dcc.Graph(
+        id="drawdown-scaling-chart",
+        config={"displayModeBar": True},
+        style={"height": "300px"},
+    )
+
+
+def build_risk_summary_cards() -> dbc.Row:
+    """Risk KPI cards row."""
+    kpis = [
+        ("Current Heat %", "risk-kpi-heat"),
+        ("Max Positions", "risk-kpi-max-pos"),
+        ("DD Scale Factor", "risk-kpi-dd-scale"),
+        ("Risk Budget Used %", "risk-kpi-budget"),
+    ]
+    return dbc.Row(
+        [dbc.Col(build_kpi_card(title, vid), width="auto") for title, vid in kpis],
+        className="g-2 mb-3 flex-nowrap overflow-auto",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Phase 18: Multi-Asset chart placeholders
+# ---------------------------------------------------------------------------
+
+def build_multi_equity_chart() -> dcc.Graph:
+    """Overlaid per-symbol equity curves (normalized to 100%)."""
+    return dcc.Graph(
+        id="multi-equity-chart",
+        config={"displayModeBar": True},
+        style={"height": "400px"},
+    )
+
+
+def build_correlation_heatmap_chart() -> dcc.Graph:
+    """Cross-asset correlation matrix heatmap."""
+    return dcc.Graph(
+        id="correlation-heatmap-chart",
+        config={"displayModeBar": True},
+        style={"height": "350px"},
+    )
+
+
+def build_multi_asset_kpis() -> dbc.Row:
+    """Multi-asset KPI cards row."""
+    kpis = [
+        ("Symbols", "multi-kpi-symbols"),
+        ("Combined PnL", "multi-kpi-pnl"),
+        ("Avg Correlation", "multi-kpi-correlation"),
+    ]
+    return dbc.Row(
+        [dbc.Col(build_kpi_card(title, vid), width="auto") for title, vid in kpis],
+        className="g-2 mb-3 flex-nowrap overflow-auto",
     )
 
 
@@ -418,6 +515,95 @@ def _build_trade_analysis_tab() -> dbc.Tab:
     )
 
 
+def _build_risk_tab() -> dbc.Tab:
+    """Tab 5: Risk Dashboard — Heat, Sizing, Daily Risk, Drawdown."""
+    return dbc.Tab(
+        label="Risk Dashboard",
+        tab_id="tab-risk",
+        children=html.Div([
+            build_risk_summary_cards(),
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader("Portfolio Heat"),
+                        dbc.CardBody(build_heat_gauge()),
+                    ], className="shadow-sm mb-3"),
+                ], md=4),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader("Position Sizing Distribution"),
+                        dbc.CardBody(build_sizing_distribution_chart()),
+                    ], className="shadow-sm mb-3"),
+                ], md=8),
+            ]),
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader("Daily Risk Usage"),
+                        dbc.CardBody(build_daily_risk_usage_chart()),
+                    ], className="shadow-sm mb-3"),
+                ], md=6),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader("Drawdown Scale Factor"),
+                        dbc.CardBody(build_drawdown_scaling_chart()),
+                    ], className="shadow-sm mb-3"),
+                ], md=6),
+            ]),
+        ], className="mt-3"),
+    )
+
+
+def _build_multi_asset_tab() -> dbc.Tab:
+    """Tab 6: Multi-Asset View — Per-Symbol Equity + Correlation."""
+    return dbc.Tab(
+        label="Multi-Asset",
+        tab_id="tab-multi-asset",
+        children=html.Div([
+            dbc.Row([
+                dbc.Col([
+                    html.Label("Symbols (comma-separated)", className="fw-bold mb-1"),
+                    dcc.Input(
+                        id="multi-symbol-input",
+                        type="text",
+                        value="AAPL,MSFT",
+                        placeholder="AAPL,MSFT,GOOG",
+                        className="form-control",
+                    ),
+                ], md=4),
+                dbc.Col([
+                    html.Label("\u00a0", className="d-block mb-1"),
+                    dbc.Button(
+                        "Run Multi-Asset",
+                        id="run-multi-asset-btn",
+                        color="info",
+                        className="w-100",
+                    ),
+                ], md=2),
+            ], className="mb-3"),
+
+            build_multi_asset_kpis(),
+
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader("Per-Symbol Equity (Normalized to 100%)"),
+                        dbc.CardBody(build_multi_equity_chart()),
+                    ], className="shadow-sm mb-3"),
+                ], md=12),
+            ]),
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader("Cross-Asset Correlation Matrix"),
+                        dbc.CardBody(build_correlation_heatmap_chart()),
+                    ], className="shadow-sm mb-3"),
+                ], md=12),
+            ]),
+        ], className="mt-3"),
+    )
+
+
 def _build_sensitivity_tab() -> dbc.Tab:
     """Tab 4: Sensitivity — Parameter Sweep + Commission Sweep."""
     return dbc.Tab(
@@ -492,8 +678,9 @@ def _build_sensitivity_tab() -> dbc.Tab:
 def build_layout() -> html.Div:
     """Build the complete dashboard layout with tabs."""
     return html.Div([
-        # Hidden store for backtest results (shared between tabs)
+        # Hidden stores for backtest results
         dcc.Store(id="backtest-result-store"),
+        dcc.Store(id="multi-asset-result-store"),
 
         # Header
         dbc.Navbar(
@@ -534,6 +721,8 @@ def build_layout() -> html.Div:
                     _build_analytics_tab(),
                     _build_trade_analysis_tab(),
                     _build_sensitivity_tab(),
+                    _build_risk_tab(),
+                    _build_multi_asset_tab(),
                 ],
             ),
 

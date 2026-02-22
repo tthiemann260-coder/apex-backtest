@@ -95,8 +95,8 @@ def _run_backtest(
     strategy_name: str,
     timeframe: str,
     params: Optional[dict] = None,
-) -> tuple[Optional[BacktestResult], Optional[MetricsResult], Optional[str]]:
-    """Run a single backtest and return results + metrics."""
+) -> tuple[Optional[BacktestResult], Optional[MetricsResult], Optional[str], list[dict]]:
+    """Run a single backtest and return results + metrics + regime_log."""
     try:
         dh = DataHandler(symbol=symbol, source="yfinance", timeframe=timeframe)
         strategy_cls = _import_strategy(strategy_name)
@@ -109,17 +109,20 @@ def _run_backtest(
         engine = create_engine(dh, strategy)
         result = engine.run()
 
+        # Capture regime_log before strategy goes out of scope
+        regime_log = getattr(strategy, "regime_log", [])
+
         if not result.equity_log:
-            return result, None, "No equity data produced"
+            return result, None, "No equity data produced", regime_log
 
         metrics = compute(
             result.equity_log,
             result.fill_log,
             timeframe=timeframe,
         )
-        return result, metrics, None
+        return result, metrics, None, regime_log
     except Exception as e:
-        return None, None, f"Error: {e}\n{traceback.format_exc()}"
+        return None, None, f"Error: {e}\n{traceback.format_exc()}", []
 
 
 # ---------------------------------------------------------------------------
@@ -721,6 +724,336 @@ def build_commission_sweep_figure(sweep_data: list[dict]) -> go.Figure:
     return fig
 
 
+# ---------------------------------------------------------------------------
+# Chart builders — Phase 18: Regime Overlay
+# ---------------------------------------------------------------------------
+
+REGIME_COLORS = {
+    "STRONG_TREND": "rgba(76, 175, 80, 0.12)",
+    "MODERATE_TREND": "rgba(139, 195, 74, 0.12)",
+    "WEAK_TREND": "rgba(255, 235, 59, 0.10)",
+    "RANGING_NORMAL": "rgba(158, 158, 158, 0.10)",
+    "RANGING_LOW": "rgba(33, 150, 243, 0.10)",
+    "CHOPPY": "rgba(244, 67, 54, 0.12)",
+}
+
+
+def _add_regime_overlay(fig: go.Figure, regime_log: list[dict]) -> None:
+    """Add colored vrect backgrounds for consecutive regime bands."""
+    if not regime_log:
+        return
+
+    # Group consecutive same-regime entries into bands
+    bands: list[tuple] = []
+    current_regime = regime_log[0]["regime_type"]
+    band_start = regime_log[0]["timestamp"]
+
+    for entry in regime_log[1:]:
+        if entry["regime_type"] != current_regime:
+            bands.append((band_start, entry["timestamp"], current_regime))
+            current_regime = entry["regime_type"]
+            band_start = entry["timestamp"]
+    bands.append((band_start, regime_log[-1]["timestamp"], current_regime))
+
+    for start, end, regime in bands:
+        color = REGIME_COLORS.get(regime, "rgba(0,0,0,0)")
+        fig.add_vrect(
+            x0=start, x1=end,
+            fillcolor=color,
+            layer="below",
+            line_width=0,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Chart builders — Phase 18: Risk Dashboard
+# ---------------------------------------------------------------------------
+
+def build_heat_gauge_figure(
+    equity_log: list[dict], fill_log: list[FillEvent],
+) -> go.Figure:
+    """Plotly Indicator gauge showing approximate portfolio heat."""
+    fig = go.Figure()
+
+    if not equity_log or not fill_log:
+        fig.add_trace(go.Indicator(
+            mode="gauge+number",
+            value=0,
+            title={"text": "Portfolio Heat %"},
+            gauge={"axis": {"range": [0, 10]},
+                   "bar": {"color": "#4CAF50"},
+                   "steps": [
+                       {"range": [0, 3], "color": "rgba(76,175,80,0.2)"},
+                       {"range": [3, 6], "color": "rgba(255,152,0,0.2)"},
+                       {"range": [6, 10], "color": "rgba(244,67,54,0.2)"},
+                   ]},
+        ))
+        fig.update_layout(template="plotly_dark", margin={"l": 20, "r": 20, "t": 40, "b": 20})
+        return fig
+
+    # Approximate heat: sum of open position risk / equity
+    final_equity = float(equity_log[-1]["equity"])
+    if final_equity <= 0:
+        heat_pct = 0
+    else:
+        # Count open exposure from fills
+        positions: dict[str, float] = {}
+        for fill in fill_log:
+            sym = fill.symbol
+            qty = float(fill.quantity)
+            price = float(fill.fill_price)
+            if fill.side == OrderSide.BUY:
+                positions[sym] = positions.get(sym, 0) + qty * price
+            else:
+                positions[sym] = positions.get(sym, 0) - qty * price
+        total_exposure = sum(abs(v) for v in positions.values())
+        heat_pct = (total_exposure / final_equity) * 100 if final_equity > 0 else 0
+
+    fig.add_trace(go.Indicator(
+        mode="gauge+number",
+        value=round(heat_pct, 1),
+        title={"text": "Portfolio Heat %"},
+        gauge={"axis": {"range": [0, max(10, heat_pct * 1.5)]},
+               "bar": {"color": "#FF5722" if heat_pct > 6 else "#FF9800" if heat_pct > 3 else "#4CAF50"},
+               "steps": [
+                   {"range": [0, 3], "color": "rgba(76,175,80,0.2)"},
+                   {"range": [3, 6], "color": "rgba(255,152,0,0.2)"},
+                   {"range": [6, max(10, heat_pct * 1.5)], "color": "rgba(244,67,54,0.2)"},
+               ]},
+    ))
+    fig.update_layout(template="plotly_dark", margin={"l": 20, "r": 20, "t": 40, "b": 20})
+    return fig
+
+
+def build_sizing_distribution_figure(fill_log: list[FillEvent]) -> go.Figure:
+    """Histogram of position sizes from fill quantities."""
+    fig = go.Figure()
+
+    quantities = [float(f.quantity) for f in fill_log if f.side == OrderSide.BUY]
+    if not quantities:
+        fig.update_layout(
+            template="plotly_dark",
+            annotations=[{"text": "No trades to analyze", "xref": "paper", "yref": "paper",
+                          "x": 0.5, "y": 0.5, "showarrow": False, "font": {"size": 14}}],
+        )
+        return fig
+
+    fig.add_trace(go.Histogram(
+        x=quantities, nbinsx=20,
+        marker_color="#2196F3",
+        name="Position Size",
+    ))
+    fig.update_layout(
+        template="plotly_dark",
+        margin={"l": 40, "r": 20, "t": 10, "b": 40},
+        xaxis_title="Position Size (shares)",
+        yaxis_title="Frequency",
+    )
+    return fig
+
+
+def build_daily_risk_usage_figure(fill_log: list[FillEvent]) -> go.Figure:
+    """Bar chart: daily capital at risk."""
+    fig = go.Figure()
+
+    if not fill_log:
+        fig.update_layout(
+            template="plotly_dark",
+            annotations=[{"text": "No trades to analyze", "xref": "paper", "yref": "paper",
+                          "x": 0.5, "y": 0.5, "showarrow": False, "font": {"size": 14}}],
+        )
+        return fig
+
+    # Group BUY fills by calendar day
+    daily_risk: dict[str, float] = {}
+    for fill in fill_log:
+        if fill.side == OrderSide.BUY:
+            day = fill.timestamp.strftime("%Y-%m-%d")
+            daily_risk[day] = daily_risk.get(day, 0) + float(fill.quantity * fill.fill_price)
+
+    if not daily_risk:
+        fig.update_layout(template="plotly_dark")
+        return fig
+
+    days = sorted(daily_risk.keys())
+    values = [daily_risk[d] for d in days]
+
+    fig.add_trace(go.Bar(
+        x=days, y=values,
+        marker_color="#FF9800",
+        name="Daily Risk ($)",
+    ))
+    fig.update_layout(
+        template="plotly_dark",
+        margin={"l": 40, "r": 20, "t": 10, "b": 40},
+        xaxis_title="Date",
+        yaxis_title="Capital at Risk ($)",
+    )
+    return fig
+
+
+def build_drawdown_scaling_figure(equity_log: list[dict]) -> go.Figure:
+    """Line chart: DrawdownScaler.compute_scale() over time."""
+    fig = go.Figure()
+
+    if not equity_log or len(equity_log) < 2:
+        fig.update_layout(
+            template="plotly_dark",
+            annotations=[{"text": "Not enough data", "xref": "paper", "yref": "paper",
+                          "x": 0.5, "y": 0.5, "showarrow": False, "font": {"size": 14}}],
+        )
+        return fig
+
+    from src.risk_manager import DrawdownScaler
+    scaler = DrawdownScaler()
+
+    timestamps = []
+    scales = []
+    for i in range(len(equity_log)):
+        timestamps.append(equity_log[i]["timestamp"])
+        scale = float(scaler.compute_scale(equity_log[:i + 1]))
+        scales.append(scale * 100)
+
+    fig.add_trace(go.Scatter(
+        x=timestamps, y=scales,
+        mode="lines", name="Scale Factor %",
+        line={"color": "#9C27B0", "width": 2},
+        fill="tozeroy",
+        fillcolor="rgba(156, 39, 176, 0.1)",
+    ))
+    fig.add_hline(y=100, line_dash="dash", line_color="gray", opacity=0.5)
+    fig.update_layout(
+        template="plotly_dark",
+        margin={"l": 40, "r": 20, "t": 10, "b": 30},
+        yaxis_title="Scale Factor %",
+    )
+    return fig
+
+
+# ---------------------------------------------------------------------------
+# Chart builders — Phase 18: Multi-Asset View
+# ---------------------------------------------------------------------------
+
+def build_multi_equity_figure(equity_log: list[dict]) -> go.Figure:
+    """Overlaid per-symbol equity curves normalized to 100%.
+
+    Pipeline: equity_log -> compute_per_symbol_equity() -> normalize -> go.Scatter
+    """
+    from src.multi_asset import compute_per_symbol_equity
+
+    fig = go.Figure()
+    per_symbol = compute_per_symbol_equity(equity_log)
+
+    if not per_symbol:
+        fig.update_layout(
+            template="plotly_dark",
+            annotations=[{"text": "No multi-asset data", "xref": "paper", "yref": "paper",
+                          "x": 0.5, "y": 0.5, "showarrow": False, "font": {"size": 14}}],
+        )
+        return fig
+
+    colors = ["#4CAF50", "#2196F3", "#FF9800", "#F44336", "#9C27B0", "#00BCD4"]
+
+    for i, symbol in enumerate(sorted(per_symbol.keys())):
+        entries = per_symbol[symbol]
+        if not entries:
+            continue
+        base_eq = float(entries[0]["equity"])
+        if base_eq == 0:
+            base_eq = 1
+        timestamps = [e["timestamp"] for e in entries]
+        normalized = [float(e["equity"]) / base_eq * 100 for e in entries]
+        fig.add_trace(go.Scatter(
+            x=timestamps, y=normalized,
+            mode="lines", name=symbol,
+            line={"color": colors[i % len(colors)], "width": 2},
+        ))
+
+    fig.add_hline(y=100, line_dash="dash", line_color="gray", opacity=0.5)
+    fig.update_layout(
+        template="plotly_dark",
+        margin={"l": 40, "r": 20, "t": 10, "b": 30},
+        yaxis_title="Normalized Equity (%)",
+        legend={"orientation": "h", "y": 1.1},
+    )
+    return fig
+
+
+def build_correlation_heatmap_figure(equity_log: list[dict]) -> go.Figure:
+    """Square NxN correlation heatmap from last rolling window.
+
+    Pipeline: equity_log -> compute_per_symbol_equity() ->
+              compute_rolling_correlation() -> last-window pivot -> go.Heatmap
+    """
+    from src.multi_asset import compute_per_symbol_equity, compute_rolling_correlation
+
+    fig = go.Figure()
+    per_symbol = compute_per_symbol_equity(equity_log)
+    sorted_symbols = sorted(per_symbol.keys())
+
+    if len(sorted_symbols) < 2:
+        fig.update_layout(
+            template="plotly_dark",
+            annotations=[{"text": "Need >= 2 symbols for correlation",
+                          "xref": "paper", "yref": "paper",
+                          "x": 0.5, "y": 0.5, "showarrow": False, "font": {"size": 14}}],
+        )
+        return fig
+
+    # Build aligned equity curves
+    min_len = min(len(per_symbol[s]) for s in sorted_symbols)
+    equity_curves: dict[str, list] = {}
+    timestamps: list = []
+    for sym in sorted_symbols:
+        entries = per_symbol[sym][:min_len]
+        equity_curves[sym] = [entry["equity"] for entry in entries]
+        if not timestamps:
+            timestamps = [entry["timestamp"] for entry in entries]
+
+    window = min(60, min_len - 1) if min_len > 2 else 2
+    corr_data = compute_rolling_correlation(equity_curves, timestamps, window=window)
+
+    if not corr_data:
+        fig.update_layout(
+            template="plotly_dark",
+            annotations=[{"text": "Not enough data for correlation",
+                          "xref": "paper", "yref": "paper",
+                          "x": 0.5, "y": 0.5, "showarrow": False, "font": {"size": 14}}],
+        )
+        return fig
+
+    # Take last timestamp's correlations and pivot to NxN matrix
+    last_ts = corr_data[-1]["timestamp"]
+    last_corrs = {r["pair"]: float(r["correlation"]) for r in corr_data if r["timestamp"] == last_ts}
+
+    n = len(sorted_symbols)
+    matrix = [[0.0] * n for _ in range(n)]
+    for i in range(n):
+        matrix[i][i] = 1.0
+        for j in range(i + 1, n):
+            pair_key = f"{sorted_symbols[i]}/{sorted_symbols[j]}"
+            corr_val = last_corrs.get(pair_key, 0.0)
+            matrix[i][j] = corr_val
+            matrix[j][i] = corr_val
+
+    fig.add_trace(go.Heatmap(
+        z=matrix,
+        x=sorted_symbols,
+        y=sorted_symbols,
+        colorscale="RdBu",
+        zmid=0,
+        zmin=-1, zmax=1,
+        text=[[f"{v:.2f}" for v in row] for row in matrix],
+        texttemplate="%{text}",
+        hovertemplate="Row: %{y}<br>Col: %{x}<br>Corr: %{z:.3f}<extra></extra>",
+    ))
+    fig.update_layout(
+        template="plotly_dark",
+        margin={"l": 60, "r": 20, "t": 10, "b": 40},
+    )
+    return fig
+
+
 def _format_decimal(val: Decimal, decimals: int = 2) -> str:
     """Format Decimal for display."""
     return f"{float(val):,.{decimals}f}"
@@ -770,7 +1103,7 @@ def register_callbacks(app) -> None:
         if not n_clicks or not symbol:
             return [no_update] * 15
 
-        result, metrics, error = _run_backtest(symbol, strategy, timeframe)
+        result, metrics, error, regime_log = _run_backtest(symbol, strategy, timeframe)
 
         if error or result is None:
             empty_fig = go.Figure()
@@ -808,8 +1141,8 @@ def register_callbacks(app) -> None:
         else:
             kpi_values = ["--"] * 10
 
-        # Serialize result for store (equity_log + fill_log summary)
-        store_data = _serialize_result(result, strategy, timeframe, symbol)
+        # Serialize result for store (equity_log + fill_log + regime_log)
+        store_data = _serialize_result(result, strategy, timeframe, symbol, regime_log)
 
         return [candle_fig, equity_fig, dd_fig] + kpi_values + ["", store_data]
 
@@ -835,7 +1168,7 @@ def register_callbacks(app) -> None:
             empty.update_layout(template="plotly_dark")
             return [empty, empty, empty]
 
-        equity_log, fill_log, timeframe = _deserialize_result(store_data)
+        equity_log, fill_log, timeframe, _ = _deserialize_result(store_data)
 
         from src.analytics import (
             compute_monthly_returns,
@@ -877,7 +1210,7 @@ def register_callbacks(app) -> None:
             empty.update_layout(template="plotly_dark")
             return [empty] * 8
 
-        equity_log, fill_log, timeframe = _deserialize_result(store_data)
+        equity_log, fill_log, timeframe, _ = _deserialize_result(store_data)
 
         from src.analytics import compute_trade_breakdown, compute_mae_mfe
 
@@ -954,7 +1287,7 @@ def register_callbacks(app) -> None:
         for v1 in p1_values:
             for v2 in p2_values:
                 params = {param1: v1, param2: v2}
-                _, metrics, error = _run_backtest(symbol, strategy, timeframe, params)
+                _, metrics, error, _ = _run_backtest(symbol, strategy, timeframe, params)
                 entry = {param1: v1, param2: v2}
                 if metrics:
                     entry["sharpe_ratio"] = metrics.sharpe_ratio
@@ -994,6 +1327,190 @@ def register_callbacks(app) -> None:
         sweep_data = run_commission_sweep(symbol, strategy, timeframe)
         return build_commission_sweep_figure(sweep_data)
 
+    # ------------------------------------------------------------------
+    # Regime Overlay callback — separate from main to avoid output clash
+    # ------------------------------------------------------------------
+
+    @app.callback(
+        Output("candlestick-chart", "figure", allow_duplicate=True),
+        [
+            Input("regime-overlay-toggle", "value"),
+            Input("backtest-result-store", "data"),
+        ],
+        prevent_initial_call=True,
+    )
+    def update_regime_overlay(toggle_on, store_data):
+        """Rebuild candlestick chart with optional regime overlay."""
+        if not store_data:
+            return no_update
+
+        equity_log, fill_log, timeframe, regime_log = _deserialize_result(store_data)
+        fig = build_candlestick_figure(equity_log, fill_log)
+
+        if toggle_on and regime_log:
+            _add_regime_overlay(fig, regime_log)
+
+        return fig
+
+    # ------------------------------------------------------------------
+    # Risk Dashboard tab — updates when store data changes
+    # ------------------------------------------------------------------
+
+    @app.callback(
+        [
+            Output("heat-gauge-chart", "figure"),
+            Output("sizing-distribution-chart", "figure"),
+            Output("daily-risk-usage-chart", "figure"),
+            Output("drawdown-scaling-chart", "figure"),
+            Output("risk-kpi-heat", "children"),
+            Output("risk-kpi-max-pos", "children"),
+            Output("risk-kpi-dd-scale", "children"),
+            Output("risk-kpi-budget", "children"),
+        ],
+        Input("backtest-result-store", "data"),
+    )
+    def update_risk_tab(store_data):
+        """Update risk dashboard charts from stored backtest data."""
+        if not store_data:
+            empty = go.Figure()
+            empty.update_layout(template="plotly_dark")
+            return [empty] * 4 + ["--"] * 4
+
+        equity_log, fill_log, timeframe, _ = _deserialize_result(store_data)
+
+        heat_fig = build_heat_gauge_figure(equity_log, fill_log)
+        sizing_fig = build_sizing_distribution_figure(fill_log)
+        daily_fig = build_daily_risk_usage_figure(fill_log)
+        dd_fig = build_drawdown_scaling_figure(equity_log)
+
+        # KPI values
+        final_eq = float(equity_log[-1]["equity"]) if equity_log else 0
+        # Heat %
+        positions: dict[str, float] = {}
+        for fill in fill_log:
+            qty = float(fill.quantity)
+            price = float(fill.fill_price)
+            if fill.side == OrderSide.BUY:
+                positions[fill.symbol] = positions.get(fill.symbol, 0) + qty * price
+            else:
+                positions[fill.symbol] = positions.get(fill.symbol, 0) - qty * price
+        total_exposure = sum(abs(v) for v in positions.values())
+        heat_pct = (total_exposure / final_eq * 100) if final_eq > 0 else 0
+
+        # Max concurrent positions (approximate from fill log)
+        open_count = 0
+        max_pos = 0
+        for fill in fill_log:
+            if fill.side == OrderSide.BUY:
+                open_count += 1
+            else:
+                open_count = max(0, open_count - 1)
+            max_pos = max(max_pos, open_count)
+
+        # DD scale factor from last equity entry
+        from src.risk_manager import DrawdownScaler
+        scaler = DrawdownScaler()
+        dd_scale = float(scaler.compute_scale(equity_log)) if equity_log else 1.0
+
+        # Risk budget approximation
+        budget_pct = min(heat_pct, 100.0)
+
+        return [
+            heat_fig, sizing_fig, daily_fig, dd_fig,
+            f"{heat_pct:.1f}%",
+            str(max_pos),
+            f"{dd_scale:.2f}",
+            f"{budget_pct:.1f}%",
+        ]
+
+    # ------------------------------------------------------------------
+    # Multi-Asset callback — runs on button click
+    # ------------------------------------------------------------------
+
+    @app.callback(
+        [
+            Output("multi-equity-chart", "figure"),
+            Output("correlation-heatmap-chart", "figure"),
+            Output("multi-kpi-symbols", "children"),
+            Output("multi-kpi-pnl", "children"),
+            Output("multi-kpi-correlation", "children"),
+        ],
+        Input("run-multi-asset-btn", "n_clicks"),
+        [
+            State("multi-symbol-input", "value"),
+            State("strategy-selector", "value"),
+            State("timeframe-selector", "value"),
+        ],
+        prevent_initial_call=True,
+    )
+    def run_multi_asset_callback(n_clicks, symbols_str, strategy, timeframe):
+        """Run multi-asset backtest and update charts + KPIs."""
+        if not n_clicks or not symbols_str:
+            return [no_update] * 5
+
+        try:
+            symbols = [s.strip() for s in symbols_str.split(",") if s.strip()]
+            if len(symbols) < 2:
+                empty = go.Figure()
+                empty.update_layout(
+                    template="plotly_dark",
+                    annotations=[{"text": "Enter at least 2 symbols",
+                                  "xref": "paper", "yref": "paper",
+                                  "x": 0.5, "y": 0.5, "showarrow": False}],
+                )
+                return [empty, empty, str(len(symbols)), "--", "--"]
+
+            # Build handlers + strategies per symbol
+            handlers = {}
+            strategies = {}
+            strategy_cls = _import_strategy(strategy)
+            for sym in symbols:
+                handlers[sym] = DataHandler(symbol=sym, source="yfinance", timeframe=timeframe)
+                strategies[sym] = strategy_cls(symbol=sym, timeframe=timeframe)
+
+            from src.multi_asset import create_multi_asset_engine
+            engine = create_multi_asset_engine(handlers=handlers, strategies=strategies)
+            result = engine.run()
+
+            # Build charts
+            eq_fig = build_multi_equity_figure(result.equity_log)
+            corr_fig = build_correlation_heatmap_figure(result.equity_log)
+
+            # KPIs
+            n_sym = str(len(symbols))
+            pnl = f"${float(result.final_equity - Decimal('10000')):,.2f}"
+
+            # Average correlation from last window
+            from src.multi_asset import compute_per_symbol_equity, compute_rolling_correlation
+            per_sym = compute_per_symbol_equity(result.equity_log)
+            sorted_syms = sorted(per_sym.keys())
+            avg_corr_str = "--"
+            if len(sorted_syms) >= 2:
+                min_len = min(len(per_sym[s]) for s in sorted_syms)
+                if min_len > 2:
+                    eq_curves = {s: [e["equity"] for e in per_sym[s][:min_len]] for s in sorted_syms}
+                    ts = [e["timestamp"] for e in per_sym[sorted_syms[0]][:min_len]]
+                    window = min(60, min_len - 1)
+                    corr_data = compute_rolling_correlation(eq_curves, ts, window=window)
+                    if corr_data:
+                        last_ts = corr_data[-1]["timestamp"]
+                        last_vals = [float(r["correlation"]) for r in corr_data if r["timestamp"] == last_ts]
+                        if last_vals:
+                            avg_corr_str = f"{sum(last_vals) / len(last_vals):.3f}"
+
+            return [eq_fig, corr_fig, n_sym, pnl, avg_corr_str]
+
+        except Exception as e:
+            empty = go.Figure()
+            empty.update_layout(
+                template="plotly_dark",
+                annotations=[{"text": f"Error: {e}",
+                              "xref": "paper", "yref": "paper",
+                              "x": 0.5, "y": 0.5, "showarrow": False,
+                              "font": {"color": "red"}}],
+            )
+            return [empty, empty, "--", "--", "--"]
+
 
 # ---------------------------------------------------------------------------
 # Serialization helpers for dcc.Store
@@ -1004,6 +1521,7 @@ def _serialize_result(
     strategy: str,
     timeframe: str,
     symbol: str,
+    regime_log: Optional[list[dict]] = None,
 ) -> dict:
     """Serialize BacktestResult for dcc.Store (JSON-compatible)."""
     equity_data = []
@@ -1030,19 +1548,29 @@ def _serialize_result(
             "spread_cost": str(fill.spread_cost),
         })
 
+    regime_data = []
+    for r in (regime_log or []):
+        regime_data.append({
+            "timestamp": r["timestamp"].isoformat() if hasattr(r["timestamp"], "isoformat") else str(r["timestamp"]),
+            "regime_type": r["regime_type"],
+            "adx": r["adx"],
+            "vol_regime": r["vol_regime"],
+        })
+
     return {
         "equity_log": equity_data,
         "fill_log": fill_data,
         "strategy": strategy,
         "timeframe": timeframe,
         "symbol": symbol,
+        "regime_log": regime_data,
     }
 
 
 def _deserialize_result(
     store_data: dict,
-) -> tuple[list[dict], list[FillEvent], str]:
-    """Deserialize stored data back to equity_log and fill_log."""
+) -> tuple[list[dict], list[FillEvent], str, list[dict]]:
+    """Deserialize stored data back to equity_log, fill_log, timeframe, regime_log."""
     equity_log = []
     for e in store_data.get("equity_log", []):
         entry = {
@@ -1067,5 +1595,14 @@ def _deserialize_result(
             spread_cost=Decimal(f["spread_cost"]),
         ))
 
+    regime_log = []
+    for r in store_data.get("regime_log", []):
+        regime_log.append({
+            "timestamp": datetime.fromisoformat(r["timestamp"]),
+            "regime_type": r["regime_type"],
+            "adx": r["adx"],
+            "vol_regime": r["vol_regime"],
+        })
+
     timeframe = store_data.get("timeframe", "1d")
-    return equity_log, fill_log, timeframe
+    return equity_log, fill_log, timeframe, regime_log

@@ -14,12 +14,12 @@ See: .planning/PROJECT.md
 | 15 | Regime Detection | Complete | 25 new (482 total) |
 | 16 | Advanced Risk Management | Complete | 26 new (508 total) |
 | 17 | Multi-Asset Foundation | Complete | 28 new (536 total) |
-| 18 | Dashboard Integration (v3.0) | Pending | — |
+| 18 | Dashboard Integration (v3.0) | Complete | 12 new (548 total) |
 
 ### Progress
-- Requirements: 26 defined, 21 complete
-- Phases: 4/5 complete
-- Tests: 536 passing, 90% coverage
+- Requirements: 26 defined, 26 complete
+- Phases: 5/5 complete
+- Tests: 548 passing, 87% coverage
 
 ## Previous Milestones
 
@@ -42,12 +42,14 @@ See: .planning/PROJECT.md
 - Phase 17: Multi-price equity snapshots via compute_equity(all_prices)
 
 ## Context for Next Session
-- Phase 17 (Multi-Asset Foundation) COMPLETE — 28 new tests, 536 total, 90% coverage
-- Next: `/gsd:plan-phase 18` to plan Dashboard Integration (v3.0)
+- Phase 18 (Dashboard Integration) COMPLETE — v3.0 milestone fully implemented
+- All 5 phases complete: ICT/Liquidity, Regime Detection, Risk Management, Multi-Asset, Dashboard Integration
+- Dashboard: 6 tabs (Overview, Analytics, Trade Analysis, Sensitivity, Risk Dashboard, Multi-Asset)
+- Next: `/gsd:complete-milestone 3.0` to archive v3.0
 
 ### Last Session
 - **Timestamp:** 2026-02-22
-- **Action:** Phase 17 implemented — merge_bars, MultiAssetEngine, rolling correlation, per-asset limits
+- **Action:** Phase 18 implemented — Regime Overlay, Risk Dashboard, Multi-Asset View, 12 new tests
 
 ---
-*Last updated: 2026-02-22 — Phase 17 complete*
+*Last updated: 2026-02-22 — Phase 18 complete, v3.0 milestone done*

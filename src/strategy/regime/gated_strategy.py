@@ -62,6 +62,7 @@ class RegimeGatedStrategy(BaseStrategy):
             adx_period=adx_period,
             regime_lookback=regime_lookback,
         )
+        self._regime_log: list[dict] = []
 
     # ------------------------------------------------------------------
     # Properties
@@ -74,6 +75,11 @@ class RegimeGatedStrategy(BaseStrategy):
     @property
     def inner_strategy(self) -> BaseStrategy:
         return self._inner
+
+    @property
+    def regime_log(self) -> list[dict]:
+        """Return recorded regime history for dashboard overlay."""
+        return list(self._regime_log)
 
     @property
     def current_atr(self) -> Decimal:
@@ -102,8 +108,17 @@ class RegimeGatedStrategy(BaseStrategy):
         # Step 3: ALWAYS call inner strategy
         signal = self._inner.calculate_signals(event)
 
-        # Step 4: Gate
+        # Step 4: Record regime for dashboard overlay
         regime = self._regime_clf.regime
+        if regime is not None:
+            self._regime_log.append({
+                "timestamp": event.timestamp,
+                "regime_type": regime.regime_type.value,
+                "adx": float(regime.adx),
+                "vol_regime": regime.vol_regime.value,
+            })
+
+        # Step 5: Gate
         if regime is None or regime.regime_type not in self._allowed_regimes:
             return None
 
