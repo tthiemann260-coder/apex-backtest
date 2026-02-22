@@ -33,10 +33,10 @@
 
 ### Portfolio Enhancement
 
-- [ ] **PORT-10**: Multi-Strategy Portfolio — Mehrere Strategien gleichzeitig auf einem Portfolio mit gewichteter Allokation
-- [ ] **PORT-11**: Strategy Attribution — Per-Strategy PnL, Sharpe, Win Rate Tracking und Reporting
-- [ ] **PORT-12**: Benchmark Comparison — Buy-and-Hold Benchmark neben Strategie-Equity anzeigen
-- [ ] **PORT-13**: Alpha/Beta/Information Ratio — Berechnung relativ zum Benchmark
+- [x] **PORT-10**: Multi-Strategy Portfolio — Mehrere Strategien gleichzeitig auf einem Portfolio mit gewichteter Allokation
+- [x] **PORT-11**: Strategy Attribution — Per-Strategy PnL, Sharpe, Win Rate Tracking und Reporting
+- [x] **PORT-12**: Benchmark Comparison — Buy-and-Hold Benchmark neben Strategie-Equity anzeigen
+- [x] **PORT-13**: Alpha/Beta/Information Ratio — Berechnung relativ zum Benchmark
 
 ### Report Export
 
