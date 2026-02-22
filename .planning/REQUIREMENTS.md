@@ -7,15 +7,15 @@
 
 ### Advanced Analytics
 
-- [ ] **ADV-01**: Monthly Returns Heatmap — Monatliche Renditen als Year x Month Heatmap (Plotly, RdYlGn, zmid=0)
-- [ ] **ADV-02**: Rolling Sharpe Ratio — Rollendes Fenster (konfigurierbar: 20/60/90/252 Bars), annualisiert, als Zeitreihen-Chart
-- [ ] **ADV-03**: Rolling Drawdown — Maximaler Drawdown im rollenden Fenster, als gefuellter Zeitreihen-Chart
-- [ ] **ADV-04**: Trade-Breakdown nach Stunde — Anzahl und PnL pro Stunde (0-23), als Bar-Chart
-- [ ] **ADV-05**: Trade-Breakdown nach Wochentag — Anzahl und PnL pro Wochentag, als Bar-Chart
-- [ ] **ADV-06**: Trade-Breakdown nach Session — Pre-Market/Morning/Lunch/Afternoon/After-Hours, als Bar-Chart
-- [ ] **ADV-07**: MAE Analyse — Max Adverse Excursion pro Trade als Scatter-Plot (MAE vs Final PnL)
-- [ ] **ADV-08**: MFE Analyse — Max Favorable Excursion pro Trade als Scatter-Plot (MFE vs Final PnL)
-- [ ] **ADV-09**: Commission Sensitivity Sweep — Backtest mit 0x/0.5x/1x/2x/3x Friction-Multiplikator, Metriken-Vergleich
+- [x] **ADV-01**: Monthly Returns Heatmap — Monatliche Renditen als Year x Month Heatmap (Plotly, RdYlGn, zmid=0)
+- [x] **ADV-02**: Rolling Sharpe Ratio — Rollendes Fenster (konfigurierbar: 20/60/90/252 Bars), annualisiert, als Zeitreihen-Chart
+- [x] **ADV-03**: Rolling Drawdown — Maximaler Drawdown im rollenden Fenster, als gefuellter Zeitreihen-Chart
+- [x] **ADV-04**: Trade-Breakdown nach Stunde — Anzahl und PnL pro Stunde (0-23), als Bar-Chart
+- [x] **ADV-05**: Trade-Breakdown nach Wochentag — Anzahl und PnL pro Wochentag, als Bar-Chart
+- [x] **ADV-06**: Trade-Breakdown nach Session — Pre-Market/Morning/Lunch/Afternoon/After-Hours, als Bar-Chart
+- [x] **ADV-07**: MAE Analyse — Max Adverse Excursion pro Trade als Scatter-Plot (MAE vs Final PnL)
+- [x] **ADV-08**: MFE Analyse — Max Favorable Excursion pro Trade als Scatter-Plot (MFE vs Final PnL)
+- [x] **ADV-09**: Commission Sensitivity Sweep — Backtest mit 0x/0.5x/1x/2x/3x Friction-Multiplikator, Metriken-Vergleich
 
 ### Smart Money Concepts
 
@@ -65,7 +65,7 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ADV-01..09 | Phase 9 | Pending |
+| ADV-01..09 | Phase 9 | Complete |
 | SMC-01..04 | Phase 10 | Pending |
 | OPT-01..04 | Phase 11 | Pending |
 | PORT-10..13 | Phase 12 | Pending |

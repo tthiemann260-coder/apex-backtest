@@ -1,13 +1,11 @@
 """
 layouts.py — Dashboard layout components for apex-backtest.
 
-Builds the Dash layout with:
-- KPI cards panel (DASH-04)
-- Candlestick chart with trade markers (DASH-01)
-- Equity curve (DASH-02)
-- Drawdown chart (DASH-03)
-- Strategy/timeframe selectors (DASH-05)
-- Parameter sweep heatmap placeholder (DASH-06)
+Builds the Dash layout with tabs:
+- Tab 1: Overview (Candlestick, Equity, Drawdown, KPIs) — DASH-01..06
+- Tab 2: Advanced Analytics (Monthly Heatmap, Rolling Sharpe/DD) — ADV-01..03
+- Tab 3: Trade Analysis (Breakdown, MAE/MFE) — ADV-04..08
+- Tab 4: Sensitivity (Parameter Sweep + Commission Sweep) — DASH-06, ADV-09
 """
 
 from __future__ import annotations
@@ -140,43 +138,130 @@ def build_heatmap_chart() -> dcc.Graph:
     )
 
 
-def build_layout() -> html.Div:
-    """Build the complete dashboard layout."""
-    return html.Div([
-        # Header
-        dbc.Navbar(
-            dbc.Container([
-                dbc.NavbarBrand(
-                    "apex-backtest Dashboard",
-                    className="fw-bold",
-                    style={"fontSize": "1.3rem"},
-                ),
-                html.Span(
-                    "Event-Driven Backtesting Engine",
-                    className="text-muted",
-                    style={"fontSize": "0.85rem"},
-                ),
-            ]),
-            color="dark",
-            dark=True,
-            className="mb-3",
-        ),
+# ---------------------------------------------------------------------------
+# Phase 9: Advanced Analytics chart placeholders
+# ---------------------------------------------------------------------------
 
-        dbc.Container([
-            # Controls row
-            build_controls(),
+def build_monthly_heatmap_chart() -> dcc.Graph:
+    """Monthly returns heatmap placeholder (ADV-01)."""
+    return dcc.Graph(
+        id="monthly-heatmap-chart",
+        config={"displayModeBar": True},
+        style={"height": "350px"},
+    )
 
-            # Status/loading
-            dcc.Loading(
-                id="loading-indicator",
-                type="circle",
-                children=[html.Div(id="loading-output")],
-            ),
 
-            # KPI panel
+def build_rolling_sharpe_chart() -> dcc.Graph:
+    """Rolling Sharpe ratio chart placeholder (ADV-02)."""
+    return dcc.Graph(
+        id="rolling-sharpe-chart",
+        config={"displayModeBar": True},
+        style={"height": "300px"},
+    )
+
+
+def build_rolling_drawdown_chart() -> dcc.Graph:
+    """Rolling drawdown chart placeholder (ADV-03)."""
+    return dcc.Graph(
+        id="rolling-drawdown-chart",
+        config={"displayModeBar": True},
+        style={"height": "300px"},
+    )
+
+
+def build_breakdown_hour_count_chart() -> dcc.Graph:
+    """Trade count by hour chart (ADV-04)."""
+    return dcc.Graph(
+        id="breakdown-hour-count-chart",
+        config={"displayModeBar": True},
+        style={"height": "280px"},
+    )
+
+
+def build_breakdown_hour_pnl_chart() -> dcc.Graph:
+    """Trade PnL by hour chart (ADV-04)."""
+    return dcc.Graph(
+        id="breakdown-hour-pnl-chart",
+        config={"displayModeBar": True},
+        style={"height": "280px"},
+    )
+
+
+def build_breakdown_weekday_count_chart() -> dcc.Graph:
+    """Trade count by weekday chart (ADV-05)."""
+    return dcc.Graph(
+        id="breakdown-weekday-count-chart",
+        config={"displayModeBar": True},
+        style={"height": "280px"},
+    )
+
+
+def build_breakdown_weekday_pnl_chart() -> dcc.Graph:
+    """Trade PnL by weekday chart (ADV-05)."""
+    return dcc.Graph(
+        id="breakdown-weekday-pnl-chart",
+        config={"displayModeBar": True},
+        style={"height": "280px"},
+    )
+
+
+def build_breakdown_session_count_chart() -> dcc.Graph:
+    """Trade count by session chart (ADV-06)."""
+    return dcc.Graph(
+        id="breakdown-session-count-chart",
+        config={"displayModeBar": True},
+        style={"height": "280px"},
+    )
+
+
+def build_breakdown_session_pnl_chart() -> dcc.Graph:
+    """Trade PnL by session chart (ADV-06)."""
+    return dcc.Graph(
+        id="breakdown-session-pnl-chart",
+        config={"displayModeBar": True},
+        style={"height": "280px"},
+    )
+
+
+def build_mae_chart() -> dcc.Graph:
+    """MAE scatter plot (ADV-07)."""
+    return dcc.Graph(
+        id="mae-chart",
+        config={"displayModeBar": True},
+        style={"height": "350px"},
+    )
+
+
+def build_mfe_chart() -> dcc.Graph:
+    """MFE scatter plot (ADV-08)."""
+    return dcc.Graph(
+        id="mfe-chart",
+        config={"displayModeBar": True},
+        style={"height": "350px"},
+    )
+
+
+def build_commission_sweep_chart() -> dcc.Graph:
+    """Commission sensitivity sweep chart (ADV-09)."""
+    return dcc.Graph(
+        id="commission-sweep-chart",
+        config={"displayModeBar": True},
+        style={"height": "400px"},
+    )
+
+
+# ---------------------------------------------------------------------------
+# Tab builders
+# ---------------------------------------------------------------------------
+
+def _build_overview_tab() -> dbc.Tab:
+    """Tab 1: Overview — existing charts and KPIs."""
+    return dbc.Tab(
+        label="Overview",
+        tab_id="tab-overview",
+        children=html.Div([
             build_kpi_panel(),
 
-            # Charts
             dbc.Row([
                 dbc.Col([
                     dbc.Card([
@@ -200,8 +285,143 @@ def build_layout() -> html.Div:
                     ], className="shadow-sm mb-3"),
                 ], md=6),
             ]),
+        ], className="mt-3"),
+    )
 
-            # Sweep Heatmap (collapsible)
+
+def _build_analytics_tab() -> dbc.Tab:
+    """Tab 2: Advanced Analytics — Monthly Heatmap, Rolling Sharpe/DD."""
+    return dbc.Tab(
+        label="Advanced Analytics",
+        tab_id="tab-analytics",
+        children=html.Div([
+            # Rolling window selector
+            dbc.Row([
+                dbc.Col([
+                    html.Label("Rolling Window", className="fw-bold mb-1"),
+                    dcc.Dropdown(
+                        id="rolling-window-selector",
+                        options=[
+                            {"label": "20 Bars", "value": 20},
+                            {"label": "60 Bars", "value": 60},
+                            {"label": "90 Bars", "value": 90},
+                            {"label": "252 Bars", "value": 252},
+                        ],
+                        value=20,
+                        clearable=False,
+                    ),
+                ], md=3),
+            ], className="mb-3"),
+
+            # Monthly Returns Heatmap
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader("Monthly Returns Heatmap"),
+                        dbc.CardBody(build_monthly_heatmap_chart()),
+                    ], className="shadow-sm mb-3"),
+                ], md=12),
+            ]),
+
+            # Rolling Sharpe + Rolling Drawdown
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader("Rolling Sharpe Ratio"),
+                        dbc.CardBody(build_rolling_sharpe_chart()),
+                    ], className="shadow-sm mb-3"),
+                ], md=6),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader("Rolling Max Drawdown"),
+                        dbc.CardBody(build_rolling_drawdown_chart()),
+                    ], className="shadow-sm mb-3"),
+                ], md=6),
+            ]),
+        ], className="mt-3"),
+    )
+
+
+def _build_trade_analysis_tab() -> dbc.Tab:
+    """Tab 3: Trade Analysis — Breakdown + MAE/MFE."""
+    return dbc.Tab(
+        label="Trade Analysis",
+        tab_id="tab-trades",
+        children=html.Div([
+            # Breakdown by Hour (ADV-04)
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader("Trade Count by Hour"),
+                        dbc.CardBody(build_breakdown_hour_count_chart()),
+                    ], className="shadow-sm mb-3"),
+                ], md=6),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader("Trade PnL by Hour"),
+                        dbc.CardBody(build_breakdown_hour_pnl_chart()),
+                    ], className="shadow-sm mb-3"),
+                ], md=6),
+            ]),
+
+            # Breakdown by Weekday (ADV-05)
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader("Trade Count by Weekday"),
+                        dbc.CardBody(build_breakdown_weekday_count_chart()),
+                    ], className="shadow-sm mb-3"),
+                ], md=6),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader("Trade PnL by Weekday"),
+                        dbc.CardBody(build_breakdown_weekday_pnl_chart()),
+                    ], className="shadow-sm mb-3"),
+                ], md=6),
+            ]),
+
+            # Breakdown by Session (ADV-06)
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader("Trade Count by Session"),
+                        dbc.CardBody(build_breakdown_session_count_chart()),
+                    ], className="shadow-sm mb-3"),
+                ], md=6),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader("Trade PnL by Session"),
+                        dbc.CardBody(build_breakdown_session_pnl_chart()),
+                    ], className="shadow-sm mb-3"),
+                ], md=6),
+            ]),
+
+            # MAE/MFE (ADV-07/08)
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader("MAE — Max Adverse Excursion"),
+                        dbc.CardBody(build_mae_chart()),
+                    ], className="shadow-sm mb-3"),
+                ], md=6),
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader("MFE — Max Favorable Excursion"),
+                        dbc.CardBody(build_mfe_chart()),
+                    ], className="shadow-sm mb-3"),
+                ], md=6),
+            ]),
+        ], className="mt-3"),
+    )
+
+
+def _build_sensitivity_tab() -> dbc.Tab:
+    """Tab 4: Sensitivity — Parameter Sweep + Commission Sweep."""
+    return dbc.Tab(
+        label="Sensitivity",
+        tab_id="tab-sensitivity",
+        children=html.Div([
+            # Parameter Sweep (existing)
             dbc.Row([
                 dbc.Col([
                     dbc.Card([
@@ -239,6 +459,80 @@ def build_layout() -> html.Div:
                     ], className="shadow-sm mb-3"),
                 ], md=12),
             ]),
+
+            # Commission Sensitivity Sweep (ADV-09)
+            dbc.Row([
+                dbc.Col([
+                    dbc.Card([
+                        dbc.CardHeader([
+                            html.Span("Commission Sensitivity Sweep"),
+                            dbc.Button(
+                                "Run Commission Sweep",
+                                id="run-commission-sweep-btn",
+                                color="secondary",
+                                size="sm",
+                                className="float-end",
+                            ),
+                        ]),
+                        dbc.CardBody(build_commission_sweep_chart()),
+                    ], className="shadow-sm mb-3"),
+                ], md=12),
+            ]),
+        ], className="mt-3"),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Main layout builder
+# ---------------------------------------------------------------------------
+
+def build_layout() -> html.Div:
+    """Build the complete dashboard layout with tabs."""
+    return html.Div([
+        # Hidden store for backtest results (shared between tabs)
+        dcc.Store(id="backtest-result-store"),
+
+        # Header
+        dbc.Navbar(
+            dbc.Container([
+                dbc.NavbarBrand(
+                    "apex-backtest Dashboard",
+                    className="fw-bold",
+                    style={"fontSize": "1.3rem"},
+                ),
+                html.Span(
+                    "Event-Driven Backtesting Engine",
+                    className="text-muted",
+                    style={"fontSize": "0.85rem"},
+                ),
+            ]),
+            color="dark",
+            dark=True,
+            className="mb-3",
+        ),
+
+        dbc.Container([
+            # Controls row
+            build_controls(),
+
+            # Status/loading
+            dcc.Loading(
+                id="loading-indicator",
+                type="circle",
+                children=[html.Div(id="loading-output")],
+            ),
+
+            # Tabbed content
+            dbc.Tabs(
+                id="dashboard-tabs",
+                active_tab="tab-overview",
+                children=[
+                    _build_overview_tab(),
+                    _build_analytics_tab(),
+                    _build_trade_analysis_tab(),
+                    _build_sensitivity_tab(),
+                ],
+            ),
 
         ], fluid=True),
     ])
