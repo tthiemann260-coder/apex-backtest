@@ -1,0 +1,215 @@
+"""
+test_data_handler.py — Tests for apex-backtest DataHandler.
+
+Covers: yield-generator pattern, Decimal conversion, null-volume rejection, CSV loading.
+Run: pytest tests/test_data_handler.py -v
+"""
+
+import pytest
+import csv
+import os
+from datetime import datetime, timezone, timedelta
+from decimal import Decimal
+from pathlib import Path
+
+from src.data_handler import DataHandler
+from src.events import MarketEvent
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def create_test_csv(rows: list[dict], filepath: Path) -> Path:
+    """Write CSV with columns: Date,Open,High,Low,Close,Volume."""
+    with open(filepath, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["Date", "Open", "High", "Low", "Close", "Volume"])
+        writer.writeheader()
+        writer.writerows(rows)
+    return filepath
+
+
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def sample_csv(tmp_path: Path) -> Path:
+    """5-bar CSV with realistic OHLCV data."""
+    rows = [
+        {"Date": "2024-01-15", "Open": "181.50", "High": "183.20", "Low": "180.90", "Close": "182.75", "Volume": "1500000"},
+        {"Date": "2024-01-16", "Open": "182.80", "High": "184.10", "Low": "182.00", "Close": "183.50", "Volume": "1200000"},
+        {"Date": "2024-01-17", "Open": "183.60", "High": "185.00", "Low": "183.10", "Close": "184.25", "Volume": "1350000"},
+        {"Date": "2024-01-18", "Open": "184.30", "High": "186.50", "Low": "184.00", "Close": "186.00", "Volume": "1800000"},
+        {"Date": "2024-01-19", "Open": "186.10", "High": "187.30", "Low": "185.50", "Close": "186.80", "Volume": "1100000"},
+    ]
+    return create_test_csv(rows, tmp_path / "test_5bars.csv")
+
+
+@pytest.fixture
+def csv_with_zero_volume(tmp_path: Path) -> Path:
+    """5-bar CSV where bar 3 has volume=0."""
+    rows = [
+        {"Date": "2024-01-15", "Open": "181.50", "High": "183.20", "Low": "180.90", "Close": "182.75", "Volume": "1500000"},
+        {"Date": "2024-01-16", "Open": "182.80", "High": "184.10", "Low": "182.00", "Close": "183.50", "Volume": "1200000"},
+        {"Date": "2024-01-17", "Open": "183.60", "High": "185.00", "Low": "183.10", "Close": "184.25", "Volume": "0"},
+        {"Date": "2024-01-18", "Open": "184.30", "High": "186.50", "Low": "184.00", "Close": "186.00", "Volume": "1800000"},
+        {"Date": "2024-01-19", "Open": "186.10", "High": "187.30", "Low": "185.50", "Close": "186.80", "Volume": "1100000"},
+    ]
+    return create_test_csv(rows, tmp_path / "test_zero_vol.csv")
+
+
+@pytest.fixture
+def all_zero_volume_csv(tmp_path: Path) -> Path:
+    """3-bar CSV where ALL bars have volume=0."""
+    rows = [
+        {"Date": "2024-01-15", "Open": "100.00", "High": "101.00", "Low": "99.00", "Close": "100.50", "Volume": "0"},
+        {"Date": "2024-01-16", "Open": "100.50", "High": "102.00", "Low": "100.00", "Close": "101.00", "Volume": "0"},
+        {"Date": "2024-01-17", "Open": "101.00", "High": "103.00", "Low": "100.50", "Close": "102.00", "Volume": "0"},
+    ]
+    return create_test_csv(rows, tmp_path / "test_all_zero.csv")
+
+
+@pytest.fixture
+def empty_csv(tmp_path: Path) -> Path:
+    """CSV with only header row."""
+    filepath = tmp_path / "test_empty.csv"
+    with open(filepath, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Date", "Open", "High", "Low", "Close", "Volume"])
+    return filepath
+
+
+# ---------------------------------------------------------------------------
+# TestDataHandlerGenerator — yield-generator behavior
+# ---------------------------------------------------------------------------
+
+class TestDataHandlerGenerator:
+
+    def test_stream_bars_returns_generator(self, sample_csv: Path) -> None:
+        handler = DataHandler("AAPL", csv_path=sample_csv)
+        gen = handler.stream_bars()
+        import types
+        assert isinstance(gen, types.GeneratorType)
+
+    def test_stream_bars_yields_market_events(self, sample_csv: Path) -> None:
+        handler = DataHandler("AAPL", csv_path=sample_csv)
+        event = next(handler.stream_bars())
+        assert isinstance(event, MarketEvent)
+
+    def test_stream_bars_yields_one_at_a_time(self, sample_csv: Path) -> None:
+        handler = DataHandler("AAPL", csv_path=sample_csv)
+        gen = handler.stream_bars()
+        first = next(gen)
+        assert isinstance(first, MarketEvent)
+        second = next(gen)
+        assert isinstance(second, MarketEvent)
+        assert first.timestamp != second.timestamp
+
+    def test_stream_bars_chronological_order(self, sample_csv: Path) -> None:
+        handler = DataHandler("AAPL", csv_path=sample_csv)
+        events = list(handler.stream_bars())
+        for i in range(1, len(events)):
+            assert events[i].timestamp >= events[i - 1].timestamp
+
+    def test_stream_bars_correct_count(self, sample_csv: Path) -> None:
+        handler = DataHandler("AAPL", csv_path=sample_csv)
+        events = list(handler.stream_bars())
+        assert len(events) == 5
+
+    def test_stream_bars_exhausts_cleanly(self, sample_csv: Path) -> None:
+        handler = DataHandler("AAPL", csv_path=sample_csv)
+        gen = handler.stream_bars()
+        events = list(gen)
+        assert len(events) == 5
+        with pytest.raises(StopIteration):
+            next(gen)
+
+
+# ---------------------------------------------------------------------------
+# TestDecimalConversion — DATA-02
+# ---------------------------------------------------------------------------
+
+class TestDecimalConversion:
+
+    def test_open_is_decimal(self, sample_csv: Path) -> None:
+        handler = DataHandler("AAPL", csv_path=sample_csv)
+        event = next(handler.stream_bars())
+        assert isinstance(event.open, Decimal)
+
+    def test_high_is_decimal(self, sample_csv: Path) -> None:
+        handler = DataHandler("AAPL", csv_path=sample_csv)
+        event = next(handler.stream_bars())
+        assert isinstance(event.high, Decimal)
+
+    def test_low_is_decimal(self, sample_csv: Path) -> None:
+        handler = DataHandler("AAPL", csv_path=sample_csv)
+        event = next(handler.stream_bars())
+        assert isinstance(event.low, Decimal)
+
+    def test_close_is_decimal(self, sample_csv: Path) -> None:
+        handler = DataHandler("AAPL", csv_path=sample_csv)
+        event = next(handler.stream_bars())
+        assert isinstance(event.close, Decimal)
+
+    def test_decimal_precision_preserved(self, sample_csv: Path) -> None:
+        """CSV value '181.50' must become exactly Decimal('181.50'), not a float approximation."""
+        handler = DataHandler("AAPL", csv_path=sample_csv)
+        event = next(handler.stream_bars())
+        assert event.open == Decimal("181.50")
+        assert event.open != Decimal("181.500000000000014")
+
+
+# ---------------------------------------------------------------------------
+# TestNullVolumeRejection — DATA-08, TEST-05
+# ---------------------------------------------------------------------------
+
+class TestNullVolumeRejection:
+
+    def test_zero_volume_bars_skipped(self, csv_with_zero_volume: Path) -> None:
+        """5-bar CSV with 1 zero-volume bar yields exactly 4 events."""
+        handler = DataHandler("AAPL", csv_path=csv_with_zero_volume)
+        events = list(handler.stream_bars())
+        assert len(events) == 4
+
+    def test_zero_volume_never_emitted(self, csv_with_zero_volume: Path) -> None:
+        handler = DataHandler("AAPL", csv_path=csv_with_zero_volume)
+        for event in handler.stream_bars():
+            assert event.volume > 0
+
+    def test_all_zero_volume_yields_nothing(self, all_zero_volume_csv: Path) -> None:
+        handler = DataHandler("AAPL", csv_path=all_zero_volume_csv)
+        events = list(handler.stream_bars())
+        assert len(events) == 0
+
+
+# ---------------------------------------------------------------------------
+# TestCSVLoading — CSV file support
+# ---------------------------------------------------------------------------
+
+class TestCSVLoading:
+
+    def test_loads_csv_file(self, sample_csv: Path) -> None:
+        handler = DataHandler("AAPL", csv_path=sample_csv)
+        events = list(handler.stream_bars())
+        assert len(events) > 0
+
+    def test_symbol_set_correctly(self, sample_csv: Path) -> None:
+        handler = DataHandler("AAPL", csv_path=sample_csv)
+        for event in handler.stream_bars():
+            assert event.symbol == "AAPL"
+
+    def test_timeframe_set_correctly(self, sample_csv: Path) -> None:
+        handler = DataHandler("AAPL", timeframe="1d", csv_path=sample_csv)
+        for event in handler.stream_bars():
+            assert event.timeframe == "1d"
+
+    def test_empty_csv_yields_nothing(self, empty_csv: Path) -> None:
+        handler = DataHandler("AAPL", csv_path=empty_csv)
+        events = list(handler.stream_bars())
+        assert len(events) == 0
+
+    def test_nonexistent_file_raises(self) -> None:
+        handler = DataHandler("AAPL", csv_path="/nonexistent/path.csv")
+        with pytest.raises(FileNotFoundError):
+            list(handler.stream_bars())
