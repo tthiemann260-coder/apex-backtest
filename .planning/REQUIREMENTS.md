@@ -40,17 +40,17 @@
 
 ### Report Export
 
-- [ ] **RPT-01**: HTML Report — Interaktiver HTML-Report mit allen Charts und KPIs (Jinja2 Template)
-- [ ] **RPT-02**: PDF Report — Statischer PDF-Report mit eingebetteten Chart-Bildern (WeasyPrint/pdfkit)
-- [ ] **RPT-03**: Report Template — Konfigurierbares Jinja2-Template fuer Branding/Layout
+- [x] **RPT-01**: HTML Report — Interaktiver HTML-Report mit allen Charts und KPIs (Jinja2 Template)
+- [x] **RPT-02**: PDF Report — Statischer PDF-Report mit eingebetteten Chart-Bildern (WeasyPrint/pdfkit)
+- [x] **RPT-03**: Report Template — Konfigurierbares Jinja2-Template fuer Branding/Layout
 
 ### Testing & QA
 
 - [x] **TEST-10**: SMC Unit Tests — Tests fuer OB/BOS/FVG-Detection mit synthetischen Daten
 - [x] **TEST-11**: Walk-Forward Isolation — Kein Indicator-State-Leakage zwischen WFO-Fenstern
-- [ ] **TEST-12**: Multi-Strategy Invariante — Portfolio-Balance korrekt bei mehreren gleichzeitigen Strategien
-- [ ] **TEST-13**: Report Generation — HTML/PDF Report ohne Exception generierbar
-- [ ] **TEST-14**: Coverage >= 90% — Gesamte Codebase inkl. neuer Module
+- [x] **TEST-12**: Multi-Strategy Invariante — Portfolio-Balance korrekt bei mehreren gleichzeitigen Strategien
+- [x] **TEST-13**: Report Generation — HTML/PDF Report ohne Exception generierbar
+- [x] **TEST-14**: Coverage >= 90% — Gesamte Codebase inkl. neuer Module
 
 ## Out of Scope (v2)
 

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title | default("Backtest Report") }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            color: #212529;
+            line-height: 1.6;
+            padding: 2rem;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #fff;
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+        }
+        header h1 { font-size: 1.8rem; font-weight: 700; }
+        header .subtitle { opacity: 0.8; margin-top: 0.5rem; }
+        .section {
+            background: #fff;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .section h2 {
+            font-size: 1.2rem;
+            color: #0f3460;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+        .kpi-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+        }
+        .kpi-card .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0f3460;
+        }
+        .kpi-card .label {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-top: 0.25rem;
+        }
+        .positive { color: #28a745 !important; }
+        .negative { color: #dc3545 !important; }
+        .chart-container {
+            width: 100%;
+            margin: 1rem 0;
+            text-align: center;
+        }
+        .chart-container img {
+            max-width: 100%;
+            border-radius: 4px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        th, td {
+            padding: 0.5rem 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        th { background: #f8f9fa; font-weight: 600; }
+        tr:hover { background: #f1f3f5; }
+        .footer {
+            text-align: center;
+            color: #6c757d;
+            font-size: 0.8rem;
+            margin-top: 2rem;
+            padding: 1rem;
+        }
+        {% if custom_css %}{{ custom_css }}{% endif %}
+    </style>
+    {% if plotly_js %}
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    {% endif %}
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>{{ title | default("Backtest Report") }}</h1>
+        <div class="subtitle">
+            {{ symbol }} | {{ timeframe }} | {{ strategy_name }}
+            {% if date_range %} | {{ date_range }}{% endif %}
+        </div>
+        {% if branding %}<div class="subtitle">{{ branding }}</div>{% endif %}
+    </header>
+
+    {% if show_kpis | default(true) %}
+    <div class="section">
+        <h2>Key Performance Indicators</h2>
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="value {{ 'positive' if net_pnl >= 0 else 'negative' }}">{{ "%.2f"|format(net_pnl) }}</div>
+                <div class="label">Net PnL</div>
+            </div>
+            <div class="kpi-card">
+                <div class="value {{ 'positive' if total_return >= 0 else 'negative' }}">{{ "%.2f"|format(total_return) }}%</div>
+                <div class="label">Total Return</div>
+            </div>
+            <div class="kpi-card">
+                <div class="value">{{ "%.2f"|format(sharpe_ratio) }}</div>
+                <div class="label">Sharpe Ratio</div>
+            </div>
+            <div class="kpi-card">
+                <div class="value">{{ "%.2f"|format(sortino_ratio) }}</div>
+                <div class="label">Sortino Ratio</div>
+            </div>
+            <div class="kpi-card">
+                <div class="value negative">{{ "%.2f"|format(max_drawdown_pct) }}%</div>
+                <div class="label">Max Drawdown</div>
+            </div>
+            <div class="kpi-card">
+                <div class="value">{{ "%.2f"|format(calmar_ratio) }}</div>
+                <div class="label">Calmar Ratio</div>
+            </div>
+            <div class="kpi-card">
+                <div class="value">{{ "%.1f"|format(win_rate) }}%</div>
+                <div class="label">Win Rate</div>
+            </div>
+            <div class="kpi-card">
+                <div class="value">{{ "%.2f"|format(profit_factor) }}</div>
+                <div class="label">Profit Factor</div>
+            </div>
+            <div class="kpi-card">
+                <div class="value">{{ total_trades }}</div>
+                <div class="label">Total Trades</div>
+            </div>
+            <div class="kpi-card">
+                <div class="value">{{ "%.1f"|format(exposure_pct) }}%</div>
+                <div class="label">Exposure</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if show_equity | default(true) %}
+    <div class="section">
+        <h2>Equity Curve</h2>
+        {% if equity_chart_html %}
+        <div class="chart-container">{{ equity_chart_html | safe }}</div>
+        {% elif equity_chart_img %}
+        <div class="chart-container"><img src="{{ equity_chart_img }}" alt="Equity Curve"></div>
+        {% else %}
+        <p>No equity chart available.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if show_drawdown | default(true) %}
+    <div class="section">
+        <h2>Drawdown</h2>
+        {% if drawdown_chart_html %}
+        <div class="chart-container">{{ drawdown_chart_html | safe }}</div>
+        {% elif drawdown_chart_img %}
+        <div class="chart-container"><img src="{{ drawdown_chart_img }}" alt="Drawdown"></div>
+        {% else %}
+        <p>No drawdown chart available.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if show_monthly | default(true) and monthly_chart_html %}
+    <div class="section">
+        <h2>Monthly Returns</h2>
+        <div class="chart-container">{{ monthly_chart_html | safe }}</div>
+    </div>
+    {% endif %}
+
+    {% if show_trades | default(true) and trades %}
+    <div class="section">
+        <h2>Trade List</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Entry Time</th>
+                    <th>Side</th>
+                    <th>Qty</th>
+                    <th>Entry Price</th>
+                    <th>Exit Price</th>
+                    <th>PnL</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for trade in trades %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ trade.entry_time }}</td>
+                    <td>{{ trade.side }}</td>
+                    <td>{{ trade.quantity }}</td>
+                    <td>{{ trade.entry_price }}</td>
+                    <td>{{ trade.exit_price }}</td>
+                    <td class="{{ 'positive' if trade.pnl >= 0 else 'negative' }}">{{ "%.2f"|format(trade.pnl) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if show_robustness | default(false) and robustness %}
+    <div class="section">
+        <h2>Robustness Summary</h2>
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="value">{{ "%.0f"|format(robustness.score) }}/100</div>
+                <div class="label">Robustness Score</div>
+            </div>
+            <div class="kpi-card">
+                <div class="value">{{ "%.2f"|format(robustness.wfo_efficiency) }}</div>
+                <div class="label">WFO Efficiency</div>
+            </div>
+            <div class="kpi-card">
+                <div class="value">{{ "%.2f"|format(robustness.sensitivity_overall) }}</div>
+                <div class="label">Parameter Stability</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        Generated by apex-backtest
+        {% if generated_at %} | {{ generated_at }}{% endif %}
+    </div>
+</div>
+</body>
+</html>
