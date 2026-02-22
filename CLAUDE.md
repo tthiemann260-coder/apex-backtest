@@ -143,4 +143,54 @@ apex-backtest/
 6. Update CLAUDE.md if architecture changes
 
 ---
-*Last updated: 2026-02-21 — Project initialization*
+
+## Superpowers — Automatische Workflow-Skills
+
+**Skills befinden sich in:** `.claude/commands/` und `.claude/agents/`
+
+### AUTOMATISCHE SKILL-AKTIVIERUNG (NICHT OPTIONAL)
+
+Vor JEDER Aktion MUSS geprueft werden, ob ein Skill relevant ist. Wenn ja: NUTZEN.
+Kein manuelles Command noetig — Skills triggern automatisch basierend auf Kontext.
+
+### Skill-Routing (automatisch anwenden)
+
+| Situation | Skill | Pfad |
+|-----------|-------|------|
+| Neue Feature-Idee / Design-Phase | **brainstorming** | `.claude/commands/brainstorming.md` |
+| Implementation planen | **writing-plans** | `.claude/commands/writing-plans.md` |
+| Plan ausfuehren (Tasks) | **subagent-driven-development** | `.claude/commands/subagent-driven-development.md` |
+| Plan ausfuehren (Batches) | **executing-plans** | `.claude/commands/executing-plans.md` |
+| Parallele Agents dispatchen | **dispatching-parallel-agents** | `.claude/commands/dispatching-parallel-agents.md` |
+| Code schreiben / Feature bauen | **test-driven-development** | `.claude/commands/test-driven-development.md` |
+| Bug / Fehler / unerw. Verhalten | **systematic-debugging** | `.claude/commands/systematic-debugging.md` |
+| Code Review anfordern | **requesting-code-review** | `.claude/commands/requesting-code-review.md` |
+| Code Review erhalten | **receiving-code-review** | `.claude/commands/receiving-code-review.md` |
+| Branch abschliessen | **finishing-a-development-branch** | `.claude/commands/finishing-a-development-branch.md` |
+| Git Worktree nutzen | **using-git-worktrees** | `.claude/commands/using-git-worktrees.md` |
+| Fix verifizieren | **verification-before-completion** | `.claude/commands/verification-before-completion.md` |
+
+### Agents
+
+| Agent | Zweck | Pfad |
+|-------|-------|------|
+| **code-reviewer** | Automatischer Code-Review nach Implementation | `.claude/agents/code-reviewer.md` |
+
+### Kern-Prinzipien
+
+1. **TDD ist Pflicht**: Test ZUERST schreiben, rot sehen, minimal implementieren, gruen sehen, committen
+2. **Kein Fix ohne Root Cause**: Bei Bugs IMMER systematisch debuggen (4-Phasen-Prozess)
+3. **Subagent pro Task**: Frischer Kontext pro Aufgabe + 2-Stufen-Review (Spec + Quality)
+4. **Brainstorming vor Code**: Bei neuen Features IMMER erst Design-Phase durchlaufen
+5. **Verification vor Abschluss**: Nicht "es kompiliert" = fertig. Verifizieren dass es FUNKTIONIERT
+
+### Referenz-Dateien (bei Bedarf lesen)
+
+- TDD Anti-Patterns: `.claude/commands/tdd-refs/testing-anti-patterns.md`
+- Root-Cause Tracing: `.claude/commands/systematic-debugging-refs/root-cause-tracing.md`
+- Defense in Depth: `.claude/commands/systematic-debugging-refs/defense-in-depth.md`
+- Subagent Prompts: `.claude/commands/subagent-refs/`
+- Code Review Agent: `.claude/commands/code-review-refs/code-reviewer.md`
+
+---
+*Last updated: 2026-02-22 — Superpowers v4.3.1 integriert*
