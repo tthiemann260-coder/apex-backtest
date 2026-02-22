@@ -19,10 +19,10 @@
 
 ### Smart Money Concepts
 
-- [ ] **SMC-01**: Order Block Detection — Erkennung bullisher/bearisher OBs mit ATR-basiertem Displacement-Filter
-- [ ] **SMC-02**: Break of Structure (BOS) — Fractal-basierte Swing-Erkennung + BOS/CHOCH Events
-- [ ] **SMC-03**: FVG Mitigation Tracking — State Machine (OPEN/TOUCHED/MITIGATED/INVERTED) mit konfigurierbarem Threshold
-- [ ] **SMC-04**: SMC Strategy — Konkrete Strategie die OB+BOS+FVG kombiniert fuer Entry/Exit Signale
+- [x] **SMC-01**: Order Block Detection — Erkennung bullisher/bearisher OBs mit ATR-basiertem Displacement-Filter
+- [x] **SMC-02**: Break of Structure (BOS) — Fractal-basierte Swing-Erkennung + BOS/CHOCH Events
+- [x] **SMC-03**: FVG Mitigation Tracking — State Machine (OPEN/TOUCHED/MITIGATED/INVERTED) mit konfigurierbarem Threshold
+- [x] **SMC-04**: SMC Strategy — Konkrete Strategie die OB+BOS+FVG kombiniert fuer Entry/Exit Signale
 
 ### Optimization
 
@@ -46,7 +46,7 @@
 
 ### Testing & QA
 
-- [ ] **TEST-10**: SMC Unit Tests — Tests fuer OB/BOS/FVG-Detection mit synthetischen Daten
+- [x] **TEST-10**: SMC Unit Tests — Tests fuer OB/BOS/FVG-Detection mit synthetischen Daten
 - [ ] **TEST-11**: Walk-Forward Isolation — Kein Indicator-State-Leakage zwischen WFO-Fenstern
 - [ ] **TEST-12**: Multi-Strategy Invariante — Portfolio-Balance korrekt bei mehreren gleichzeitigen Strategien
 - [ ] **TEST-13**: Report Generation — HTML/PDF Report ohne Exception generierbar

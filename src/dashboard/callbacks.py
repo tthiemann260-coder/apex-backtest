@@ -38,6 +38,7 @@ STRATEGY_MAP = {
     "reversal": ("src.strategy.reversal", "ReversalStrategy"),
     "breakout": ("src.strategy.breakout", "BreakoutStrategy"),
     "fvg": ("src.strategy.fvg", "FVGStrategy"),
+    "smc": ("src.strategy.smc.smc_strategy", "SMCStrategy"),
 }
 
 # Default strategy params for sweep
@@ -56,6 +57,12 @@ SWEEP_PARAMS = {
     "fvg": {
         "min_gap_size_pct": [0.05, 0.1, 0.15, 0.2, 0.3],
         "max_open_gaps": [3, 5, 7, 10],
+    },
+    "smc": {
+        "swing_strength": [2, 3, 4],
+        "atr_period": [10, 14, 20],
+        "atr_mult_threshold": [1.0, 1.5, 2.0],
+        "warmup_bars": [20, 30, 50],
     },
 }
 
