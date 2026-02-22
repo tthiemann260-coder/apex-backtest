@@ -39,6 +39,7 @@ STRATEGY_MAP = {
     "breakout": ("src.strategy.breakout", "BreakoutStrategy"),
     "fvg": ("src.strategy.fvg", "FVGStrategy"),
     "smc": ("src.strategy.smc.smc_strategy", "SMCStrategy"),
+    "ict": ("src.strategy.smc.ict_strategy", "ICTStrategy"),
 }
 
 # Default strategy params for sweep
@@ -63,6 +64,13 @@ SWEEP_PARAMS = {
         "atr_period": [10, 14, 20],
         "atr_mult_threshold": [1.0, 1.5, 2.0],
         "warmup_bars": [20, 30, 50],
+    },
+    "ict": {
+        "swing_strength": [2, 3, 4],
+        "atr_period": [10, 14, 20],
+        "require_sweep": [True, False],
+        "require_kill_zone": [True, False],
+        "require_ote": [True, False],
     },
 }
 

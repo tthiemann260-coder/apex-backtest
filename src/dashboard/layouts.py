@@ -60,6 +60,7 @@ def build_controls() -> dbc.Row:
                     {"label": "Breakout (Donchian)", "value": "breakout"},
                     {"label": "FVG (Fair Value Gap)", "value": "fvg"},
                     {"label": "SMC (Smart Money Concepts)", "value": "smc"},
+                    {"label": "ICT (Enhanced Liquidity)", "value": "ict"},
                 ],
                 value="reversal",
                 clearable=False,
