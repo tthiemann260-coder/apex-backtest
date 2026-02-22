@@ -11,11 +11,11 @@ Die Engine muss mathematisch korrekte Backtesting-Ergebnisse liefern — kein Lo
 ## Current State
 
 **Version:** v1.0 (shipped 2026-02-22)
-**Status:** Fully operational
+**Next:** v2.0 (in progress)
 **Tests:** 250 passing, 91% coverage
 **Launch:** `python -m src.dashboard` from project root
 
-### Shipped Features
+### v1.0 Shipped Features
 - Event-driven architecture (4 event types, FIFO queue)
 - DataHandler (yield-generator, Decimal, Parquet cache, yfinance, gap-fill)
 - 3 strategies (Reversal, Breakout, FVG) with pandas-ta
@@ -24,13 +24,15 @@ Die Engine muss mathematisch korrekte Backtesting-Ergebnisse liefern — kein Lo
 - Metrics (Sharpe, Sortino, MDD, Calmar, CAGR, win rate, exposure)
 - Dash dashboard (candlestick, equity, drawdown, KPIs, sweep heatmap)
 
-## Next Milestone Goals (v2.0 — TBD)
+## v2.0 Milestone — Advanced Analytics, SMC & Optimization
 
-Potential directions:
-- Advanced Analytics (Monthly Returns Heatmap, Rolling Sharpe, MAE/MFE)
-- Smart Money Concepts (Order Blocks, BOS, FVG Mitigation Tracking)
-- Optimization (Grid Search Sweep, Walk-Forward Validation, Robustness Report)
-- Commission Sensitivity Analysis
+### Active Requirements (30 total)
+- **Advanced Analytics (9):** Monthly Heatmap, Rolling Sharpe/DD, Trade Breakdown, MAE/MFE, Commission Sweep
+- **Smart Money Concepts (4):** Order Blocks, BOS/CHOCH, FVG Mitigation, SMC Strategy
+- **Optimization (4):** Walk-Forward (Rolling), Parameter Sensitivity, Monte Carlo, Robustness Report
+- **Portfolio Enhancement (4):** Multi-Strategy, Attribution, Benchmark, Alpha/Beta
+- **Report Export (3):** HTML Report, PDF Report, Jinja2 Templates
+- **Testing (5):** SMC Tests, WFO Isolation, Multi-Strategy Invariante, Report Gen, Coverage >= 90%
 
 ## Constraints
 
