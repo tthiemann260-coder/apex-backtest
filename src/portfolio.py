@@ -57,6 +57,7 @@ class Portfolio:
         self._fill_log: list[FillEvent] = []
         self._total_realized_pnl = Decimal("0")
         self._forced_liquidation_count = 0
+        self._trade_builder: Optional[object] = None  # TradeBuilder (lazy import)
 
     # ------------------------------------------------------------------
     # Properties
@@ -81,6 +82,15 @@ class Portfolio:
     @property
     def realized_pnl(self) -> Decimal:
         return self._total_realized_pnl
+
+    @property
+    def trade_builder(self) -> Optional[object]:
+        """Attached TradeBuilder observer (or None)."""
+        return self._trade_builder
+
+    @trade_builder.setter
+    def trade_builder(self, builder: object) -> None:
+        self._trade_builder = builder
 
     # ------------------------------------------------------------------
     # Position sizing (PORT-02)
@@ -181,6 +191,10 @@ class Portfolio:
             self._process_buy(fill, total_cost)
         else:
             self._process_sell(fill, total_cost)
+
+        # Notify trade builder (if attached)
+        if self._trade_builder is not None:
+            self._trade_builder.on_fill(fill, self._positions)
 
     def _process_buy(self, fill: FillEvent, friction: Decimal) -> None:
         """Process a BUY fill."""
@@ -301,6 +315,10 @@ class Portfolio:
             "symbol": bar.symbol,
             "price": bar.close,
         })
+
+        # Notify trade builder for MAE/MFE tracking
+        if self._trade_builder is not None:
+            self._trade_builder.on_bar(bar, self._positions)
 
     # ------------------------------------------------------------------
     # Margin monitoring (PORT-05)
