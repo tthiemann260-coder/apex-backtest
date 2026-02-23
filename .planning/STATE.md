@@ -4,9 +4,22 @@
 See: .planning/PROJECT.md
 **Core value:** Mathematisch korrekte Backtesting-Ergebnisse
 
-## Current Milestone: None (v3.0 archived)
+## Current Milestone: v4.0 — Strategy Builder, Trading Journal & Bayesian Optimization
 
-No active milestone. Run `/gsd:new-milestone` to start the next development cycle.
+### Phase Status
+
+| Phase | Name | Status | Tests |
+|-------|------|--------|-------|
+| 19 | Trading Journal — Foundation | Pending | — |
+| 20 | Trading Journal — Dashboard & Analytics | Pending | — |
+| 21 | Strategy Builder — Core Engine | Pending | — |
+| 22 | Strategy Builder — Dashboard UI | Pending | — |
+| 23 | Bayesian Optimization & Integration | Pending | — |
+
+### Progress
+- Requirements: 28 defined, 0 complete
+- Phases: 0/5 complete
+- Tests: 548 passing (from v3.0), 87% coverage
 
 ## Previous Milestones
 
@@ -28,12 +41,18 @@ No active milestone. Run `/gsd:new-milestone` to start the next development cycl
 - Phase 9: Decimal->float conversion only at Plotly visualization boundary
 - Phase 17: Per-symbol ExecutionHandlers for cross-symbol fill isolation
 - Phase 17: Multi-price equity snapshots via compute_equity(all_prices)
+- v4.0: SQLite for Journal persistence (stdlib, zero dependencies)
+- v4.0: type() metaclass for Strategy Builder compiler (kein exec/eval)
+- v4.0: Optuna TPESampler with multivariate=True for parameter optimization
 
 ## Context for Next Session
-- v3.0 milestone archived (2026-02-23)
-- 548 tests, 87% coverage, 18 phases total across 3 milestones
-- Dashboard: 6 tabs (Overview, Analytics, Trade Analysis, Sensitivity, Risk Dashboard, Multi-Asset)
-- Next: `/gsd:new-milestone` to define v4.0
+- v4.0 milestone started (2026-02-23)
+- Research complete for all 3 domains (journal, builder, optuna)
+- Next: `/gsd:plan-phase 19` to start Trading Journal Foundation
+
+### Last Session
+- **Timestamp:** 2026-02-23
+- **Action:** v3.0 archived, v4.0 milestone defined (28 requirements, 5 phases)
 
 ---
-*Last updated: 2026-02-23 — v3.0 archived*
+*Last updated: 2026-02-23 — v4.0 milestone started*

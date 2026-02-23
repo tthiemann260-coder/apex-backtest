@@ -69,16 +69,18 @@ Die Engine muss mathematisch korrekte Backtesting-Ergebnisse liefern — kein Lo
 - Mobile App
 - ML/AI-Strategien (regelbasiert only)
 
-## Next Milestone Goals
+## v4.0 Milestone — Strategy Builder, Trading Journal & Bayesian Optimization
 
-Noch nicht definiert. Starte `/gsd:new-milestone` fuer den naechsten Entwicklungszyklus.
+### Active Requirements (28 total)
+- **Trading Journal Foundation (5):** TradeJournalEntry, Emotion Taxonomy, Tag System, SQLite Persistence, TradeBuilder Integration
+- **Trading Journal Dashboard (2+1):** Journal Analytics, Dashboard Journal Tab, Tests
+- **Strategy Builder Core (6):** Indicator Blocks, Condition Engine, Serialization, Compiler, Validator, Templates
+- **Strategy Builder UI (3+1):** Builder Tab, Template Loading, Live Validation, Tests
+- **Bayesian Optimization (5+3):** Optuna Integration, Multi-Objective, Walk-Forward, Pruning, Dashboard Tab, Integration Tests, Coverage
 
-### Ideen fuer v4.0
-- Strategy Builder (visueller UI-Konfigurator)
-- Trading Journal (Notizen, Emotionen, Lernpunkte)
-- Dashboard UX Improvements
-- Live-Paper-Trading Simulation
-- Custom Indicator Framework
+### New Dependencies
+- optuna 4.x (Bayesian Optimization)
+- pydantic 2.x (Strategy Schema Validation)
 
 ---
-*Last updated: 2026-02-23 — v3.0 shipped, milestone archived*
+*Last updated: 2026-02-23 — v4.0 milestone started*
