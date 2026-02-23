@@ -10,7 +10,7 @@ See: .planning/PROJECT.md
 
 | Phase | Name | Status | Tests |
 |-------|------|--------|-------|
-| 19 | Trading Journal — Foundation | Plan B done (2/3) | 583 |
+| 19 | Trading Journal — Foundation | COMPLETE (3/3) | 608 |
 | 20 | Trading Journal — Dashboard & Analytics | Pending | — |
 | 21 | Strategy Builder — Core Engine | Pending | — |
 | 22 | Strategy Builder — Dashboard UI | Pending | — |
@@ -18,8 +18,8 @@ See: .planning/PROJECT.md
 
 ### Progress
 - Requirements: 28 defined, 0 complete
-- Phases: 0/5 complete
-- Tests: 583 passing (+35 from 19-B)
+- Phases: 1/5 complete
+- Tests: 608 passing (+25 from 19-C)
 
 ## Previous Milestones
 
@@ -44,16 +44,25 @@ See: .planning/PROJECT.md
 - v4.0: SQLite for Journal persistence (stdlib, zero dependencies)
 - v4.0: type() metaclass for Strategy Builder compiler (kein exec/eval)
 - v4.0: Optuna TPESampler with multivariate=True for parameter optimization
+- Phase 19: TradeBuilder uses Observer pattern — Portfolio calls on_fill/on_bar
+- Phase 19: OrderSide.BUY/SELL converted to LONG/SHORT at TradeBuilder boundary
+- Phase 19: Partial close not supported in v1 — trade sealed when qty=0
 
 ## Context for Next Session
-- Phase 19 Plans A+B complete: data models + SQLite persistence
-- Next: Execute PLAN-19C (TradeBuilder observer — fills to journal entries)
-- 19-C depends on 19-B (done)
+- Phase 19 COMPLETE: data models + SQLite persistence + TradeBuilder integration
+- Next: Plan Phase 20 — Trading Journal Dashboard & Analytics
+- Full pipeline: FillEvent -> TradeBuilder -> TradeJournalEntry -> TradeJournal (SQLite)
 
 ### Last Session
 - **Timestamp:** 2026-02-23
-- **Action:** Executed PLAN-19B — SQLite persistence (TradeJournal class, 10 CRUD methods, 35 tests)
-- **Commits:** fd69cca (19-A), df4b089 (19-B)
+- **Action:** Executed PLAN-19C — TradeBuilder observer + Portfolio/Engine hooks + 25 tests
+- **Commits:** f755786 (TradeBuilder), 9303923 (Portfolio hooks), 512b638 (Engine), 3865c2c (tests)
+
+### Performance Metrics
+
+| Phase-Plan | Duration | Tasks | Tests Added | Files |
+|---|---|---|---|---|
+| 19-C | 4m 38s | 4 | 25 | 4 |
 
 ---
-*Last updated: 2026-02-23 — PLAN-19B complete*
+*Last updated: 2026-02-23 — Phase 19 COMPLETE*
