@@ -8,4 +8,5 @@ build/
 .venv/
 venv/
 data/*.parquet
+data/journal.db
 .coverage
