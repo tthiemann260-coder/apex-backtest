@@ -205,16 +205,24 @@ def create_engine(
     spread_pct: Decimal = Decimal("0.0002"),
     margin_requirement: Decimal = Decimal("0.25"),
     risk_manager=None,
+    trade_builder=None,
 ) -> BacktestEngine:
     """Factory function for creating fresh engine instances (EDA-04).
 
     Each call creates new Portfolio and ExecutionHandler instances
     to prevent state leakage between sweep iterations.
+
+    Parameters
+    ----------
+    trade_builder : TradeBuilder, optional
+        If provided, attached to Portfolio for automatic trade journaling.
     """
     portfolio = Portfolio(
         initial_cash=initial_cash,
         margin_requirement=margin_requirement,
     )
+    if trade_builder is not None:
+        portfolio.trade_builder = trade_builder
     execution = ExecutionHandler(
         slippage_pct=slippage_pct,
         commission_per_trade=commission_per_trade,
