@@ -10,7 +10,7 @@ See: .planning/PROJECT.md
 
 | Phase | Name | Status | Tests |
 |-------|------|--------|-------|
-| 19 | Trading Journal — Foundation | Plan A done (1/3) | 548 |
+| 19 | Trading Journal — Foundation | Plan B done (2/3) | 583 |
 | 20 | Trading Journal — Dashboard & Analytics | Pending | — |
 | 21 | Strategy Builder — Core Engine | Pending | — |
 | 22 | Strategy Builder — Dashboard UI | Pending | — |
@@ -19,7 +19,7 @@ See: .planning/PROJECT.md
 ### Progress
 - Requirements: 28 defined, 0 complete
 - Phases: 0/5 complete
-- Tests: 548 passing (from v3.0), 87% coverage
+- Tests: 583 passing (+35 from 19-B)
 
 ## Previous Milestones
 
@@ -46,14 +46,14 @@ See: .planning/PROJECT.md
 - v4.0: Optuna TPESampler with multivariate=True for parameter optimization
 
 ## Context for Next Session
-- Phase 19 Plan A complete: journal data models (enums + dataclass + serialization)
-- Next: Execute PLAN-19B (SQLite persistence) or PLAN-19C (TradeBuilder observer)
-- 19-B depends on 19-A (done), 19-C depends on 19-B
+- Phase 19 Plans A+B complete: data models + SQLite persistence
+- Next: Execute PLAN-19C (TradeBuilder observer — fills to journal entries)
+- 19-C depends on 19-B (done)
 
 ### Last Session
 - **Timestamp:** 2026-02-23
-- **Action:** Executed PLAN-19A — Trading Journal data models (4 enums, TradeJournalEntry, serialization helpers)
-- **Commit:** fd69cca
+- **Action:** Executed PLAN-19B — SQLite persistence (TradeJournal class, 10 CRUD methods, 35 tests)
+- **Commits:** fd69cca (19-A), df4b089 (19-B)
 
 ---
-*Last updated: 2026-02-23 — PLAN-19A complete*
+*Last updated: 2026-02-23 — PLAN-19B complete*
