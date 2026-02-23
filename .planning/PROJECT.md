@@ -10,16 +10,26 @@ Die Engine muss mathematisch korrekte Backtesting-Ergebnisse liefern — kein Lo
 
 ## Current State
 
-**Version:** v2.0 (shipped 2026-02-22)
-**Tests:** 427 passing, 90% coverage
+**Version:** v3.0 (shipped 2026-02-23)
+**Tests:** 548 passing, 87% coverage
 **Launch:** `python -m src.dashboard` from project root
 
-### v2.0 Shipped Features (on top of v1.0)
+### v3.0 Shipped Features (on top of v2.0)
+- ICT/Liquidity Concepts: Liquidity sweeps, inducement detection, kill zones (DST-korrekt), premium/discount zones, ICT enhanced strategy
+- Regime Detection: ATR volatility regime, ADX trend strength (first principles), combined 6-type classifier, regime-gated strategy decorator
+- Advanced Risk Management: RiskManager module, fixed fractional sizing (ATR-stop), Kelly criterion (half-Kelly, warmup guard), portfolio heat monitor, drawdown-based scaling
+- Multi-Asset Foundation: Multi-symbol data merge (heapq), multi-asset engine, cross-asset correlation, per-asset position limits
+- Dashboard v3.0: Regime overlay, risk dashboard tab, multi-asset view (6 tabs total)
+
+<details>
+<summary>v2.0 Features (shipped 2026-02-22)</summary>
+
 - Advanced Analytics: Monthly heatmap, rolling Sharpe/DD, trade breakdown, MAE/MFE, commission sweep
 - Smart Money Concepts: Order blocks, BOS/CHOCH, FVG state machine, combined SMC strategy
 - Optimization Engine: Walk-forward validation, parameter sensitivity, Monte Carlo shuffling, robustness report
 - Portfolio Enhancement: Multi-strategy routing, attribution, buy-and-hold benchmark, Alpha/Beta/IR
 - Report Export: Interactive HTML and static PDF reports with Jinja2 templates
+</details>
 
 <details>
 <summary>v1.0 Features (shipped 2026-02-22)</summary>
@@ -59,20 +69,16 @@ Die Engine muss mathematisch korrekte Backtesting-Ergebnisse liefern — kein Lo
 - Mobile App
 - ML/AI-Strategien (regelbasiert only)
 
-## v3.0 Milestone — ICT/Liquidity, Regime Detection, Risk Management & Multi-Asset
+## Next Milestone Goals
 
-### Active Requirements (26 total)
-- **ICT/Liquidity (5):** Liquidity Sweeps, Inducement, Kill Zones, Premium/Discount, ICT Strategy
-- **Regime Detection (4):** ATR Volatility, ADX Trend, Combined Classifier, Regime-Gated Strategy
-- **Risk Management (5):** RiskManager, Fixed Fractional, Kelly Criterion, Portfolio Heat, DD Scaling
-- **Multi-Asset (4):** Bar Merge, Multi-Asset Engine, Cross-Asset Correlation, Per-Asset Limits
-- **Dashboard (3):** Regime Overlay, Risk Dashboard, Multi-Asset View
-- **Testing (5):** ICT Tests, Regime Tests, Risk Tests, Multi-Asset Tests, Coverage >= 90%
+Noch nicht definiert. Starte `/gsd:new-milestone` fuer den naechsten Entwicklungszyklus.
 
-### Planned for v3.1
+### Ideen fuer v4.0
 - Strategy Builder (visueller UI-Konfigurator)
 - Trading Journal (Notizen, Emotionen, Lernpunkte)
 - Dashboard UX Improvements
+- Live-Paper-Trading Simulation
+- Custom Indicator Framework
 
 ---
-*Last updated: 2026-02-22 — v3.0 milestone started*
+*Last updated: 2026-02-23 — v3.0 shipped, milestone archived*
